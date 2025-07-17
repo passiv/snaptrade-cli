@@ -9,6 +9,8 @@ const CONFIG_FILE = path.join(CONFIG_DIR, "settings.json");
 
 interface Settings {
   lastAccountId?: string;
+  userId?: string;
+  userSecret?: string;
 }
 
 export function getSettings(): Settings {

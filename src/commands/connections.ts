@@ -1,14 +1,15 @@
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import Table from "cli-table3";
-import { USER } from "../user.ts";
+import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function connectionsCommand(snaptrade: Snaptrade): Command {
   return new Command("connections")
     .description("List all broker connections")
     .action(async () => {
+      const user = await loadOrRegisterUser(snaptrade);
       const connections = (
-        await snaptrade.connections.listBrokerageAuthorizations(USER)
+        await snaptrade.connections.listBrokerageAuthorizations(user)
       ).data;
 
       const table = new Table({

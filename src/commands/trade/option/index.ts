@@ -5,12 +5,12 @@ import type {
   MlegInstrumentType,
 } from "snaptrade-typescript-sdk";
 import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
-import { USER } from "../../../user.ts";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
 import { selectAccount } from "../../../utils/selectAccount.ts";
 import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
 import { ironCondorCommand } from "./iron-condor.ts";
 import { straddleCommand } from "./straddle.ts";
+import { loadOrRegisterUser } from "../../../utils/user.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option").description(
@@ -119,6 +119,8 @@ export async function placeTrade(
   legs: Leg[],
   trade: TradeArgs
 ) {
+  const user = await loadOrRegisterUser(snaptrade);
+
   const { ticker, orderType, limitPrice, action, quantity, tif, account } =
     trade;
   const legsInput = legs.map((leg) => ({
@@ -148,7 +150,7 @@ export async function placeTrade(
   })();
 
   const response = await snaptrade.trading.placeMlegOrder({
-    ...USER,
+    ...user,
     accountId: account.id,
     order_type: orderTypeInput,
     limit_price: limitPrice,

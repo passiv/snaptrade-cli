@@ -1,13 +1,15 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { USER } from "../../user.ts";
 import { selectAccount } from "../../utils/selectAccount.ts";
+import { loadOrRegisterUser } from "../../utils/user.ts";
 
 export function equityCommand(snaptrade: Snaptrade): Command {
   return new Command("equity")
     .description("Place a simple equity trade with one leg")
     .action(async (opts, command) => {
+      const user = await loadOrRegisterUser(snaptrade);
+
       const { ticker, orderType, limitPrice, action, qty, tif } =
         command.parent.opts();
 
@@ -52,7 +54,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
       }
 
       const response = await snaptrade.trading.placeForceOrder({
-        ...USER,
+        ...user,
         account_id: selectedAccount.id,
         symbol: ticker,
         action,

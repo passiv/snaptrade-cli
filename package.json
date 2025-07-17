@@ -5,8 +5,10 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
+    "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
+    "open": "^10.2.0",
     "prettier": "^3.6.2",
     "snaptrade-typescript-sdk": "^9.0.118"
   },

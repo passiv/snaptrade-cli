@@ -1,14 +1,16 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { USER } from "../user.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
+import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function cancelOrderCommand(snaptrade: Snaptrade): Command {
   return new Command("cancel-order")
     .description("Cancel an existing order")
     .requiredOption("--orderId <id>", "Order ID to cancel")
     .action(async (opts, command) => {
+      const user = await loadOrRegisterUser(snaptrade);
+
       const { orderId } = opts;
 
       const selectedAccount = await selectAccount({
@@ -27,7 +29,7 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
       }
 
       const response = await snaptrade.trading.cancelUserAccountOrder({
-        ...USER,
+        ...user,
         accountId: selectedAccount.id,
         brokerage_order_id: orderId,
       });

@@ -1,8 +1,8 @@
 import { Separator } from "@inquirer/core";
 import { select } from "@inquirer/prompts";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { USER } from "../user.ts";
 import { getSettings, saveSettings } from "./settings.ts";
+import { loadOrRegisterUser } from "./user.ts";
 
 const brokers_with_mleg_options = [
   "WEBULL",
@@ -22,7 +22,8 @@ export async function selectAccount({
   context: "equity_trade" | "option_trade";
   useLastAccount: boolean;
 }) {
-  const accounts = (await snaptrade.accountInformation.listUserAccounts(USER))
+  const user = await loadOrRegisterUser(snaptrade);
+  const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
     .data;
 
   // Skip the selector is the user wants to use the last account and it still exists
