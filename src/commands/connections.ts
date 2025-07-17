@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import Table from "cli-table3";
 import { loadOrRegisterUser } from "../utils/user.ts";
+import chalk from "chalk";
 
 export function connectionsCommand(snaptrade: Snaptrade): Command {
   return new Command("connections")
@@ -11,6 +12,13 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
       const connections = (
         await snaptrade.connections.listBrokerageAuthorizations(user)
       ).data;
+
+      if (connections.length === 0) {
+        console.log(
+          `No connections found. Connect an account with ${chalk.green(`snaptrade connect`)}.`
+        );
+        return;
+      }
 
       const table = new Table({
         head: ["ID", "Broker", "Status", "Type", "Connected On"],
