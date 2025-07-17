@@ -1,0 +1,19 @@
+{
+  "name": "snaptrade-cli",
+  "bin": {
+    "snaptrade": "src/main.ts"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.6.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.0",
+    "prettier": "^3.6.2",
+    "snaptrade-typescript-sdk": "^9.0.118"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  },
+  "type": "module"
+}
