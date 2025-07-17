@@ -14,10 +14,11 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         command.parent.opts();
 
       const quantity = parseFloat(qty);
-      const priceResult = await fetch(
-        `https://api.twelvedata.com/price?symbol=${ticker}&apikey=${process.env.TWELVEDATA_API_KEY}`
-      );
-      const quote = await priceResult.json();
+      //   TODO Figure out a better solution for fetching quotes
+      //   const priceResult = await fetch(
+      //     `https://api.twelvedata.com/price?symbol=${ticker}&apikey=${process.env.TWELVEDATA_API_KEY}`
+      //   );
+      //   const quote = await priceResult.json();
       const selectedAccount = await selectAccount({
         snaptrade,
         context: "equity_trade",
@@ -34,7 +35,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           }
         )}`,
         ticker,
-        quote: `$${quote.price}`,
+        // quote: `$${quote.price}`,
         action,
         quantity,
         orderType,

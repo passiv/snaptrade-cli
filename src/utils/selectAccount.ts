@@ -55,7 +55,7 @@ export async function selectAccount({
   );
 
   const connections = (
-    await snaptrade.connections.listBrokerageAuthorizations(USER)
+    await snaptrade.connections.listBrokerageAuthorizations(user)
   ).data;
 
   const choices = connections.flatMap((connection) => [
