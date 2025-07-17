@@ -5,12 +5,14 @@ import path from "path";
 const CONFIG_ROOT =
   process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
 const CONFIG_DIR = path.join(CONFIG_ROOT, "snaptrade");
-const CONFIG_FILE = path.join(CONFIG_DIR, "settings.json");
+export const CONFIG_FILE = path.join(CONFIG_DIR, "settings.json");
 
 interface Settings {
-  lastAccountId?: string;
+  clientId?: string;
+  consumerKey?: string;
   userId?: string;
   userSecret?: string;
+  lastAccountId?: string;
 }
 
 export function getSettings(): Settings {
