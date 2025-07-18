@@ -12,12 +12,16 @@ import { ironCondorCommand } from "./iron-condor.ts";
 import { straddleCommand } from "./straddle.ts";
 import { loadOrRegisterUser } from "../../../utils/user.ts";
 import { strangleCommand } from "./strangle.ts";
+import { callCommand } from "./call.ts";
+import { putCommand } from "./put.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option").description(
     "Place single leg or multi-leg option trade"
   );
 
+  cmd.addCommand(callCommand(snaptrade));
+  cmd.addCommand(putCommand(snaptrade));
   cmd.addCommand(ironCondorCommand(snaptrade));
   cmd.addCommand(straddleCommand(snaptrade));
   cmd.addCommand(strangleCommand(snaptrade));
