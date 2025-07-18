@@ -15,14 +15,14 @@ export function straddleCommand(snaptrade: Snaptrade): Command {
 
       const legs: Leg[] = [
         {
-          type: "P",
+          type: "PUT",
           action: trade.action,
           strike,
           expiration: exp,
           quantity: trade.quantity,
         },
         {
-          type: "C",
+          type: "CALL",
           action: trade.action,
           strike,
           expiration: exp,

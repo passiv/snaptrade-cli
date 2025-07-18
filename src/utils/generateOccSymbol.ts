@@ -3,7 +3,7 @@ export function generateOccSymbol(
   ticker: string,
   expiration: string,
   strike: string,
-  optionType: "C" | "P"
+  optionType: "CALL" | "PUT"
 ): string {
   const formattedTicker = ticker.toUpperCase().padEnd(6, " ");
   const formattedExpiration = expiration.replace(/-/g, "").slice(2); // YYMMDD

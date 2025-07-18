@@ -6,12 +6,14 @@ import { connectionsCommand } from "./connections.ts";
 import { cancelOrderCommand } from "./cancelOrder.ts";
 import { connectCommand } from "./connect.ts";
 import { disconnectCommand } from "./disconnect.ts";
+import { positionsCommand } from "./positions.ts";
 
 export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(statusCommand(snaptrade));
   program.addCommand(connectCommand(snaptrade));
   program.addCommand(disconnectCommand(snaptrade));
   program.addCommand(connectionsCommand(snaptrade));
+  program.addCommand(positionsCommand(snaptrade));
   program.addCommand(tradeCommand(snaptrade));
   program.addCommand(cancelOrderCommand(snaptrade));
 }

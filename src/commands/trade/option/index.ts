@@ -24,7 +24,7 @@ export function optionCommand(snaptrade: Snaptrade): Command {
 }
 
 export type Leg = {
-  type: "C" | "P";
+  type: "CALL" | "PUT";
   action: "BUY" | "SELL";
   strike: string;
   expiration: string;

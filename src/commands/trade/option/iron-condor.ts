@@ -21,28 +21,28 @@ export function ironCondorCommand(snaptrade: Snaptrade): Command {
 
       const legs: Leg[] = [
         {
-          type: "P",
+          type: "PUT",
           action: trade.action === "SELL" ? "BUY" : "SELL",
           strike: putLow,
           expiration: exp,
           quantity: trade.quantity,
         },
         {
-          type: "P",
+          type: "PUT",
           action: trade.action === "SELL" ? "SELL" : "BUY",
           strike: putHigh,
           expiration: exp,
           quantity: trade.quantity,
         },
         {
-          type: "C",
+          type: "CALL",
           action: trade.action === "SELL" ? "SELL" : "BUY",
           strike: callLow,
           expiration: exp,
           quantity: trade.quantity,
         },
         {
-          type: "C",
+          type: "CALL",
           action: trade.action === "SELL" ? "BUY" : "SELL",
           strike: callHigh,
           expiration: exp,
