@@ -8,5 +8,5 @@ export function generateOccSymbol(
   const formattedTicker = ticker.toUpperCase().padEnd(6, " ");
   const formattedExpiration = expiration.replace(/-/g, "").slice(2); // YYMMDD
   const formattedStrike = (Number(strike) * 1000).toFixed(0).padStart(8, "0");
-  return `${formattedTicker}${formattedExpiration}${optionType}${formattedStrike}`;
+  return `${formattedTicker}${formattedExpiration}${optionType === "CALL" ? "C" : "P"}${formattedStrike}`;
 }
