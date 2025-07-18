@@ -11,6 +11,7 @@ import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
 import { ironCondorCommand } from "./iron-condor.ts";
 import { straddleCommand } from "./straddle.ts";
 import { loadOrRegisterUser } from "../../../utils/user.ts";
+import { strangleCommand } from "./strangle.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option").description(
@@ -19,6 +20,7 @@ export function optionCommand(snaptrade: Snaptrade): Command {
 
   cmd.addCommand(ironCondorCommand(snaptrade));
   cmd.addCommand(straddleCommand(snaptrade));
+  cmd.addCommand(strangleCommand(snaptrade));
 
   return cmd;
 }
