@@ -7,13 +7,14 @@ import type {
 import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
 import { selectAccount } from "../../../utils/selectAccount.ts";
-import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
-import { ironCondorCommand } from "./iron-condor.ts";
-import { straddleCommand } from "./straddle.ts";
+import { handlePostTrade } from "../../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../../utils/user.ts";
-import { strangleCommand } from "./strangle.ts";
+import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
 import { callCommand } from "./call.ts";
+import { ironCondorCommand } from "./iron-condor.ts";
 import { putCommand } from "./put.ts";
+import { straddleCommand } from "./straddle.ts";
+import { strangleCommand } from "./strangle.ts";
 import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
 
@@ -168,5 +169,7 @@ export async function placeTrade(
     price_effect: action === "BUY" ? "DEBIT" : "CREDIT",
     legs: legsInput,
   });
-  console.log("Place option order response", response.data);
+
+  console.log("✅ Order submitted!");
+  handlePostTrade(snaptrade, response, account, user, "trade");
 }

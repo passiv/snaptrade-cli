@@ -2,6 +2,7 @@ import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../utils/selectAccount.ts";
+import { handlePostTrade } from "../utils/trading.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function cancelOrderCommand(snaptrade: Snaptrade): Command {
@@ -13,7 +14,7 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
 
       const { orderId } = opts;
 
-      const selectedAccount = await selectAccount({
+      const account = await selectAccount({
         snaptrade,
         context: "equity_trade",
         useLastAccount: command.parent.opts().useLastAccount,
@@ -30,10 +31,11 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
 
       const response = await snaptrade.trading.cancelUserAccountOrder({
         ...user,
-        accountId: selectedAccount.id,
+        accountId: account.id,
         brokerage_order_id: orderId,
       });
-      console.log("Request ID: ", response.headers["x-request-id"]);
-      console.log("Cancel order response", response.data);
+
+      console.log("✅ Order cancellation submitted!");
+      handlePostTrade(snaptrade, response, account, user, "cancel");
     });
 }

@@ -2,6 +2,7 @@ import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../utils/selectAccount.ts";
+import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 
 export function equityCommand(snaptrade: Snaptrade): Command {
@@ -19,19 +20,19 @@ export function equityCommand(snaptrade: Snaptrade): Command {
       //     `https://api.twelvedata.com/price?symbol=${ticker}&apikey=${process.env.TWELVEDATA_API_KEY}`
       //   );
       //   const quote = await priceResult.json();
-      const selectedAccount = await selectAccount({
+      const account = await selectAccount({
         snaptrade,
         context: "equity_trade",
         useLastAccount: command.parent.parent.opts().useLastAccount,
       });
 
       const trade = {
-        accountId: selectedAccount.id,
-        account: `${selectedAccount.name} - ${selectedAccount.balance.total?.amount?.toLocaleString(
+        accountId: account.id,
+        account: `${account.name} - ${account.balance.total?.amount?.toLocaleString(
           "en-US",
           {
             style: "currency",
-            currency: selectedAccount.balance.total.currency,
+            currency: account.balance.total.currency,
           }
         )}`,
         ticker,
@@ -56,7 +57,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
 
       const response = await snaptrade.trading.placeForceOrder({
         ...user,
-        account_id: selectedAccount.id,
+        account_id: account.id,
         symbol: ticker,
         action,
         order_type: orderType,
@@ -64,7 +65,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         time_in_force: tif,
         units: quantity,
       });
-      console.log("Request ID: ", response.headers["x-request-id"]);
-      console.log("Place order response", response.data);
+      console.log("✅ Order submitted!");
+      handlePostTrade(snaptrade, response, account, user, "trade");
     });
 }
