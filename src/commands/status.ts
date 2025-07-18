@@ -6,7 +6,7 @@ import chalk from "chalk";
 export function statusCommand(snaptrade: Snaptrade): Command {
   return new Command("status")
     .description(
-      "Check the current status of the Snaptrade API with your API credentials"
+      "Check the current status of the SnapTrade API with your API credentials"
     )
     .action(async () => {
       const user = await loadOrRegisterUser(snaptrade);
