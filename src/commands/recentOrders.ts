@@ -25,6 +25,7 @@ export function recentOrdersCommand(snaptrade: Snaptrade): Command {
         await snaptrade.accountInformation.getUserAccountRecentOrders({
           ...user,
           accountId: account.id,
+          onlyExecuted: false,
         });
 
       const table = new Table({
@@ -34,6 +35,7 @@ export function recentOrdersCommand(snaptrade: Snaptrade): Command {
           "Symbol",
           "Status",
           "Action",
+          "Quantity",
           "Filled Qty",
           "Type",
           "Filled Price",
@@ -55,6 +57,7 @@ export function recentOrdersCommand(snaptrade: Snaptrade): Command {
           order.option_symbol?.ticker ?? order.universal_symbol?.symbol,
           order.status,
           order.action,
+          order.total_quantity,
           order.filled_quantity,
           order.order_type,
           // FIXME wrong typing here. string over the wire but number in SDK
