@@ -66,7 +66,6 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
 
       const table = new Table({
         head: ["Symbol", "Quantity", "Cost Basis"],
-        colWidths: [24, 15, 15],
       });
 
       for (const position of combinedPositions) {

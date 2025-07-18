@@ -22,7 +22,6 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
 
       const table = new Table({
         head: ["ID", "Broker", "Status", "Type", "Connected On"],
-        colWidths: [38, 25, 15, 18, 15],
       });
 
       for (const conn of connections) {
