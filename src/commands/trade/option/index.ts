@@ -14,6 +14,8 @@ import { loadOrRegisterUser } from "../../../utils/user.ts";
 import { strangleCommand } from "./strangle.ts";
 import { callCommand } from "./call.ts";
 import { putCommand } from "./put.ts";
+import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
+import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option").description(
@@ -22,9 +24,11 @@ export function optionCommand(snaptrade: Snaptrade): Command {
 
   cmd.addCommand(callCommand(snaptrade));
   cmd.addCommand(putCommand(snaptrade));
-  cmd.addCommand(ironCondorCommand(snaptrade));
   cmd.addCommand(straddleCommand(snaptrade));
   cmd.addCommand(strangleCommand(snaptrade));
+  cmd.addCommand(verticalCallSpreadCommand(snaptrade));
+  cmd.addCommand(verticalPutSpreadCommand(snaptrade));
+  cmd.addCommand(ironCondorCommand(snaptrade));
 
   return cmd;
 }
