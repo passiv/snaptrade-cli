@@ -19,7 +19,7 @@ export async function selectAccount({
   useLastAccount,
 }: {
   snaptrade: Snaptrade;
-  context: "equity_trade" | "option_trade" | "positions" | "recent-orders";
+  context: "equity_trade" | "option_trade" | "positions" | "recent-orders" | "balances";
   useLastAccount: boolean;
 }) {
   const user = await loadOrRegisterUser(snaptrade);
@@ -71,7 +71,7 @@ export async function selectAccount({
       value: acct.id,
       disabled:
         context === "option_trade" &&
-        !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
+          !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
           ? "Option trading not supported"
           : connection.disabled
             ? "Connection disabled"
