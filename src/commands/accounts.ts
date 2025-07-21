@@ -24,6 +24,11 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
         return (b.balance.total?.amount ?? 0) - (a.balance.total?.amount ?? 0);
       });
 
+      let total = 0;
+      accounts.forEach((account) => {
+        total += account.balance.total?.amount ?? 0;
+      });
+
       const table = new Table({
         head: ["ID", "Broker", "Name", "Account #", "Total Value"],
       });
@@ -40,6 +45,14 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
           }),
         ]);
       }
+
+      table.push([
+        { colSpan: 4, content: "Total", hAlign: "right" },
+        total.toLocaleString("en-US", {
+          style: "currency",
+          currency: accounts[0].balance.total?.currency,
+        }),
+      ]);
 
       console.log(table.toString());
     });
