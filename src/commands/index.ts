@@ -8,6 +8,7 @@ import { connectCommand } from "./connect.ts";
 import { disconnectCommand } from "./disconnect.ts";
 import { positionsCommand } from "./positions.ts";
 import { balancesCommand } from "./balances.ts";
+import { holdingsCommand } from "./holdings.ts";
 import { recentOrdersCommand } from "./recentOrders.ts";
 import { accountsCommand } from "./accounts.ts";
 
@@ -18,6 +19,7 @@ export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(connectionsCommand(snaptrade));
   program.addCommand(accountsCommand(snaptrade));
   program.addCommand(balancesCommand(snaptrade));
+  program.addCommand(holdingsCommand(snaptrade));
   program.addCommand(positionsCommand(snaptrade));
   program.addCommand(recentOrdersCommand(snaptrade));
   program.addCommand(tradeCommand(snaptrade));
