@@ -3,12 +3,12 @@ import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import { generateOccSymbol } from "../utils/generateOccSymbol.ts";
 
 type Position = {
   symbol: string;
   quantity: number;
   costBasis: string;
+  price: string;
 };
 export function positionsCommand(snaptrade: Snaptrade): Command {
   return new Command("positions")
@@ -37,6 +37,10 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         combinedPositions.push({
           symbol: position.symbol?.symbol?.symbol || "Unknown",
           quantity: position.units || 0,
+          price: position.price?.toLocaleString("en-US", {
+            style: "currency",
+            currency: position.symbol?.symbol?.currency.code,
+          }) || "N/A",
           costBasis:
             position.average_purchase_price?.toLocaleString("en-US", {
               style: "currency",
@@ -49,6 +53,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         combinedPositions.push({
           symbol: optionPosition.symbol?.option_symbol?.ticker || "Unknown",
           quantity: optionPosition.units || 0,
+          price: optionPosition.symbol?.option_symbol?.last_price || 0,
           // option cost basis is per contract, but we want to show it per share
           costBasis: (
             optionPosition.average_purchase_price! / 100
@@ -65,11 +70,11 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       combinedPositions.sort((a, b) => a.symbol.localeCompare(b.symbol));
 
       const table = new Table({
-        head: ["Symbol", "Quantity", "Cost Basis"],
+        head: ["Symbol", "Quantity", "Price", "Cost Basis"],
       });
 
       for (const position of combinedPositions) {
-        table.push([position.symbol, position.quantity, position.costBasis]);
+        table.push([position.symbol, position.quantity, position.price, position.costBasis]);
       }
 
       console.log(table.toString());

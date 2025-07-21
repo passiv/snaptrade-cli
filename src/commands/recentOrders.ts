@@ -3,13 +3,7 @@ import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import { generateOccSymbol } from "../utils/generateOccSymbol.ts";
 
-type Position = {
-  symbol: string;
-  quantity: number;
-  costBasis: string;
-};
 export function recentOrdersCommand(snaptrade: Snaptrade): Command {
   return new Command("recent-orders")
     .description("List all recent orders for a given account")
