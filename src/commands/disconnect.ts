@@ -6,20 +6,18 @@ import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function disconnectCommand(snaptrade: Snaptrade): Command {
   return new Command("disconnect")
-    .description("Remove a brokerage connection")
-    .requiredOption("--connectionId <id>", "Connection ID to remove")
-    .action(async (opts) => {
+    .description("Remove an existing broker connection")
+    .argument("<connectionId>", "Connection ID to remove")
+    .action(async (connectionId) => {
       const user = await loadOrRegisterUser(snaptrade);
 
-      const response = await snaptrade.connections.removeBrokerageAuthorization(
-        {
-          ...user,
-          authorizationId: opts.connectionId,
-        }
-      );
+      await snaptrade.connections.removeBrokerageAuthorization({
+        ...user,
+        authorizationId: connectionId,
+      });
 
       console.log(
-        chalk.green(`✅ Successfully deleted connection ${opts.connectionId}.`)
+        chalk.green(`✅ Successfully deleted connection ${connectionId}.`)
       );
     });
 }

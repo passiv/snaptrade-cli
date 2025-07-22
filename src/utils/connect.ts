@@ -34,14 +34,16 @@ export async function handleConnect(
   const interval = setInterval(async () => {
     const connections =
       await snaptrade.connections.listBrokerageAuthorizations(user);
-    // Find the connection that's newer than when we started
-    const newConnection = connections.data.find(
-      (conn) => new Date(conn.created_date!) > startTime
+    // Find the connection that's more recently updated than when we started
+    const newOrUpdated = connections.data.find(
+      (conn) => new Date(conn.updated_date!) > startTime
     );
-    if (newConnection) {
+    if (newOrUpdated) {
       clearInterval(interval);
       console.log(
-        chalk.green(`✅ Connected to ${newConnection.brokerage?.name}`)
+        chalk.green(
+          `✅ ${existingConnectionId ? "Reconnected" : "Connected"} to ${newOrUpdated.brokerage?.name}`
+        )
       );
 
       console.log(
@@ -50,7 +52,7 @@ export async function handleConnect(
 
       console.log(
         `To disconnect, run ${chalk.green(
-          `snaptrade disconnect --connectionId ${newConnection.id}`
+          `snaptrade disconnect --connectionId ${newOrUpdated.id}`
         )}.`
       );
     }
