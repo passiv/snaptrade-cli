@@ -3,15 +3,25 @@ import open from "open";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import type { User } from "./user";
 
-export async function handleConnect(
-  snaptrade: Snaptrade,
-  user: User,
-  existingConnectionId?: string
-) {
+export async function handleConnect({
+  snaptrade,
+  user,
+  existingConnectionId,
+  brokerSlug,
+  connectionType = "trade", // default to trade if not specified
+}: {
+  snaptrade: Snaptrade;
+  user: User;
+  existingConnectionId?: string;
+  brokerSlug?: string;
+  connectionType?: "read" | "trade";
+}) {
   const loginResponse = await snaptrade.authentication.loginSnapTradeUser({
     ...user,
     reconnect: existingConnectionId,
-    connectionType: "trade",
+    broker: brokerSlug,
+    // Don't modify connection type if reconnecting
+    connectionType: existingConnectionId ? undefined : connectionType,
   });
   if (
     !("redirectURI" in loginResponse.data) ||

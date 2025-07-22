@@ -9,6 +9,10 @@ export function reconnectCommand(snaptrade: Snaptrade): Command {
     .argument("<connectionId>", "Connection ID to reconnect")
     .action(async (connectionId) => {
       const user = await loadOrRegisterUser(snaptrade);
-      handleConnect(snaptrade, user, connectionId);
+      handleConnect({
+        snaptrade,
+        user,
+        existingConnectionId: connectionId,
+      });
     });
 }
