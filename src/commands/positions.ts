@@ -17,7 +17,6 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       const user = await loadOrRegisterUser(snaptrade);
       const account = await selectAccount({
         snaptrade,
-        context: "positions",
         useLastAccount: command.parent.opts().useLastAccount,
       });
 

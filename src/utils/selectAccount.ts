@@ -19,8 +19,8 @@ export async function selectAccount({
   useLastAccount,
 }: {
   snaptrade: Snaptrade;
-  context: "equity_trade" | "option_trade" | "positions" | "recent-orders";
   useLastAccount: boolean;
+  context?: "option_trade";
 }) {
   const user = await loadOrRegisterUser(snaptrade);
   const accounts = (await snaptrade.accountInformation.listUserAccounts(user))

@@ -16,7 +16,6 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
 
       const account = await selectAccount({
         snaptrade,
-        context: "equity_trade",
         useLastAccount: command.parent.opts().useLastAccount,
       });
 

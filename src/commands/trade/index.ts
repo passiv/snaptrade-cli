@@ -28,8 +28,7 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
     )
     .option("--limitPrice <number>", "Limit price")
     .requiredOption("--action <type>", "Action type: BUY or SELL")
-    .option("--tif <type>", "Time in force: Day or GTC", "Day")
-    .option("--qty <number>", "Number of shares or contracts", "1");
+    .option("--tif <type>", "Time in force: Day or GTC", "Day");
 
   cmd.addCommand(equityCommand(snaptrade));
   cmd.addCommand(optionCommand(snaptrade));

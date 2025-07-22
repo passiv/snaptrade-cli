@@ -19,9 +19,13 @@ import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
-  const cmd = new Command("option").description(
-    "Place single leg or multi-leg option trade"
-  );
+  const cmd = new Command("option")
+    .description("Place single leg or multi-leg option trade")
+    .requiredOption(
+      "--contracts <number>",
+      "Number of contracts to trade",
+      "1"
+    );
 
   cmd.addCommand(callCommand(snaptrade));
   cmd.addCommand(putCommand(snaptrade));
@@ -56,7 +60,7 @@ export async function processCommonOptionArgs(
   snaptrade: Snaptrade,
   command: any
 ): Promise<TradeArgs> {
-  const { ticker, orderType, limitPrice, action, qty, tif } =
+  const { ticker, orderType, limitPrice, action, tif } =
     command.parent.parent.opts();
 
   const orderTypeInput = orderType as (typeof ORDER_TYPES)[number];
@@ -65,7 +69,9 @@ export async function processCommonOptionArgs(
     console.error("Limit price is required for limit orders.");
     process.exit(1);
   }
-  const quantity = parseInt(qty);
+
+  const { contracts } = command.parent.opts();
+  const quantity = parseInt(contracts);
 
   const selectedAccount = await selectAccount({
     snaptrade,

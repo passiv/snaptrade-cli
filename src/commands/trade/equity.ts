@@ -8,13 +8,27 @@ import { loadOrRegisterUser } from "../../utils/user.ts";
 export function equityCommand(snaptrade: Snaptrade): Command {
   return new Command("equity")
     .description("Place a simple equity trade with one leg")
+    .option(
+      "--shares <number>",
+      "Number of shares. Either shares or notional must be provided."
+    )
+    .option(
+      "--notional <number>",
+      "Notional amount. Either shares or notional must be provided."
+    )
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
 
-      const { ticker, orderType, limitPrice, action, qty, tif } =
+      const { ticker, orderType, limitPrice, action, tif } =
         command.parent.opts();
 
-      const quantity = parseFloat(qty);
+      const { shares, notional } = opts;
+
+      if (!shares && !notional) {
+        console.error("You must provide either --shares or --notional.");
+        return;
+      }
+      const sharesParsed = parseFloat(shares);
       //   TODO Figure out a better solution for fetching quotes
       //   const priceResult = await fetch(
       //     `https://api.twelvedata.com/price?symbol=${ticker}&apikey=${process.env.TWELVEDATA_API_KEY}`
@@ -22,7 +36,6 @@ export function equityCommand(snaptrade: Snaptrade): Command {
       //   const quote = await priceResult.json();
       const account = await selectAccount({
         snaptrade,
-        context: "equity_trade",
         useLastAccount: command.parent.parent.opts().useLastAccount,
       });
 
@@ -38,7 +51,8 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         ticker,
         // quote: `$${quote.price}`,
         action,
-        quantity,
+        quantity: sharesParsed,
+        notional,
         orderType,
         limitPrice,
         timeInForce: tif,
@@ -63,7 +77,8 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         order_type: orderType,
         price: limitPrice,
         time_in_force: tif,
-        units: quantity,
+        units: sharesParsed,
+        notional_value: notional,
       });
       console.log("✅ Order submitted!");
       handlePostTrade(snaptrade, response, account, user, "trade");
