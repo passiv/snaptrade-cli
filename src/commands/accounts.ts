@@ -37,8 +37,8 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
         table.push([
           account.id,
           account.institution_name,
-          account.number,
           account.name,
+          account.number,
           account.balance.total?.amount?.toLocaleString("en-US", {
             style: "currency",
             currency: account.balance.total.currency,
