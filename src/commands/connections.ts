@@ -21,7 +21,7 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
       }
 
       const table = new Table({
-        head: ["ID", "Broker", "Status", "Type", "Connected On"],
+        head: ["ID", "Broker", "Status", "Type", "Connected on", "Disabled on"],
       });
 
       for (const conn of connections) {
@@ -31,6 +31,9 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
           conn.disabled ? "❌ Disabled" : "✅ Active",
           conn.type === "read" ? "read-only" : "trade",
           new Date(conn.created_date!).toLocaleDateString(),
+          conn.disabled_date
+            ? new Date(conn.disabled_date).toLocaleDateString()
+            : "N/A",
         ]);
       }
 
