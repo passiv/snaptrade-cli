@@ -28,7 +28,11 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
     )
     .option("--limitPrice <number>", "Limit price")
     .requiredOption("--action <type>", "Action type: BUY or SELL")
-    .option("--tif <type>", "Time in force: Day or GTC", "Day");
+    .option("--tif <type>", "Time in force: Day or GTC", "Day")
+    .option(
+      "--replace <string>",
+      "Replace an existing order. Provide the broker order ID to replace."
+    );
 
   cmd.addCommand(equityCommand(snaptrade));
   cmd.addCommand(optionCommand(snaptrade));

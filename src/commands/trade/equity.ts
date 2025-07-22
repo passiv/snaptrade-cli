@@ -19,7 +19,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
 
-      const { ticker, orderType, limitPrice, action, tif } =
+      const { ticker, orderType, limitPrice, action, tif, replace } =
         command.parent.opts();
 
       const { shares, notional } = opts;
@@ -56,6 +56,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         orderType,
         limitPrice,
         timeInForce: tif,
+        replace,
       };
 
       console.log(trade);
@@ -69,18 +70,39 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         return;
       }
 
-      const response = await snaptrade.trading.placeForceOrder({
-        ...user,
-        account_id: account.id,
-        symbol: ticker,
-        action,
-        order_type: orderType,
-        price: limitPrice,
-        time_in_force: tif,
-        units: sharesParsed,
-        notional_value: notional,
-      });
-      console.log("✅ Order submitted!");
-      handlePostTrade(snaptrade, response, account, user, "trade");
+      // TODO Switch to placeSimpleOrder once it's ready
+
+      if (!replace) {
+        const response = await snaptrade.trading.placeForceOrder({
+          ...user,
+          account_id: account.id,
+          symbol: ticker,
+          action,
+          order_type: orderType,
+          price: limitPrice,
+          time_in_force: tif,
+          units: sharesParsed,
+          notional_value: notional,
+        });
+
+        console.log("✅ Order submitted!");
+        handlePostTrade(snaptrade, response, account, user, "trade");
+      } else {
+        const response = await snaptrade.trading.replaceOrder({
+          ...user,
+          accountId: account.id,
+          brokerageOrderId: replace,
+          symbol: ticker,
+          action,
+          order_type: orderType,
+          price: limitPrice,
+          time_in_force: tif,
+          units: sharesParsed,
+          // FIXME This is missing notional value
+        });
+
+        console.log("✅ Order replacement submitted!");
+        handlePostTrade(snaptrade, response, account, user, "replace");
+      }
     });
 }

@@ -9,14 +9,26 @@ export async function handlePostTrade(
   response: AxiosResponse,
   account: Account,
   user: User,
-  context: "trade" | "cancel"
+  context: "trade" | "cancel" | "replace"
 ) {
   console.log(`SnapTrade Request ID: ${response.headers["x-request-id"]}`);
   console.log(
     `${account.institution_name} Order ID: ${response.data.brokerage_order_id}`
   );
+  const verb = (() => {
+    switch (context) {
+      case "trade":
+        return "executed";
+      case "cancel":
+        return "canceled";
+      case "replace":
+        return "replaced";
+      default:
+        return "processed";
+    }
+  })();
   console.log(
-    `Please check with ${account.institution_name} to ensure the order was ${context === "trade" ? "executed" : "canceled"} as expected.`
+    `Please check with ${account.institution_name} to ensure the order was ${verb} as expected.`
   );
   console.log(
     `You can also use ${chalk.green("snaptrade recent-orders")} to view recent orders.`
