@@ -37,6 +37,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
       const account = await selectAccount({
         snaptrade,
         useLastAccount: command.parent.parent.opts().useLastAccount,
+        context: "equity_trade",
       });
 
       const trade = {

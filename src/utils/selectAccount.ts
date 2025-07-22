@@ -20,7 +20,7 @@ export async function selectAccount({
 }: {
   snaptrade: Snaptrade;
   useLastAccount: boolean;
-  context?: "option_trade";
+  context?: "option_trade" | "equity_trade";
 }) {
   const user = await loadOrRegisterUser(snaptrade);
   const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
@@ -69,15 +69,24 @@ export async function selectAccount({
         }
       )}`,
       value: acct.id,
-      disabled:
-        context === "option_trade" &&
-        !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
-          ? "Option trading not supported"
-          : connection.disabled
-            ? "Connection disabled"
-            : connection.type === "read"
-              ? "Read-only connection"
-              : false,
+      disabled: (() => {
+        // If there's no context, all accounts are valid
+        if (!context) return false;
+        // If trying to trade, check if the connection is disabled or read-only
+        if (context === "equity_trade" || context === "option_trade") {
+          if (connection.disabled) return "Connection disabled";
+          if (connection.type === "read") return "Read-only connection";
+        }
+        // For options, check if the brokerage supports multi-leg options
+        if (context === "option_trade") {
+          if (
+            !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
+          ) {
+            return "Option trading not supported";
+          }
+        }
+        return false; // No issues, account is selectable
+      })(),
     })),
   ]);
 
