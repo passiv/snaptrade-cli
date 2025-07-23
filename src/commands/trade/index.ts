@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { cancelOrderCommand } from "../cancelOrder.ts";
 import { cryptoCommand } from "./crypto.ts";
 import { equityCommand } from "./equity.ts";
 import { optionCommand } from "./option/index.ts";
@@ -37,7 +36,6 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
   cmd.addCommand(equityCommand(snaptrade));
   cmd.addCommand(optionCommand(snaptrade));
   cmd.addCommand(cryptoCommand(snaptrade));
-  cmd.addCommand(cancelOrderCommand(snaptrade));
 
   return cmd;
 }
