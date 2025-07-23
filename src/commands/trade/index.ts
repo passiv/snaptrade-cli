@@ -10,7 +10,7 @@ export const TIME_IN_FORCE = ["Day", "GTC"] as const;
 
 export function tradeCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("trade")
-    .description("Execute different trading strategies")
+    .description("Execute different types of trades (equity, options, crypto)")
     .requiredOption("--ticker <symbol>", "Underlying asset symbol (e.g., AAPL)")
     .option(
       "--orderType <type>",

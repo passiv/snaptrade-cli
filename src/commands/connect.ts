@@ -5,7 +5,7 @@ import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function connectCommand(snaptrade: Snaptrade): Command {
   return new Command("connect")
-    .description("Connect a brokerage account")
+    .description("Establish a new broker connection")
     .option("--broker <slug>", "Brokerage slug to connect")
     .action(async (opts) => {
       const user = await loadOrRegisterUser(snaptrade);

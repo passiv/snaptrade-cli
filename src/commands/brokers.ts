@@ -1,12 +1,10 @@
+import Table from "cli-table3";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { loadOrRegisterUser } from "../utils/user.ts";
-import chalk from "chalk";
-import Table from "cli-table3";
 
 export function brokersCommand(snaptrade: Snaptrade): Command {
   return new Command("brokers")
-    .description("Get the list of brokers available to your SnapTrade account")
+    .description("List all brokers available to connect")
     .action(async () => {
       const response = await snaptrade.referenceData.getPartnerInfo();
       const table = new Table({

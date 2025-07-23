@@ -10,9 +10,7 @@ const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
 
 export function quoteCommand(snaptrade: Snaptrade): Command {
   return new Command("quote")
-    .description(
-      "Get the current quote for a given symbol or a comma-separated list of symbols"
-    )
+    .description("Get the latest market quote")
     .argument(
       "[symbols]",
       "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols"
