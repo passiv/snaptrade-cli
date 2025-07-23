@@ -13,6 +13,8 @@ const brokers_with_mleg_options = [
   "ALPACA-PAPER",
 ];
 
+const brokers_with_crypto = ["COINBASE", "BINANCE", "KRAKEN"];
+
 export async function selectAccount({
   snaptrade,
   context,
@@ -20,7 +22,7 @@ export async function selectAccount({
 }: {
   snaptrade: Snaptrade;
   useLastAccount: boolean;
-  context?: "option_trade" | "equity_trade";
+  context?: "option_trade" | "equity_trade" | "crypto_trade";
 }) {
   const user = await loadOrRegisterUser(snaptrade);
   const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
@@ -88,6 +90,11 @@ export async function selectAccount({
               !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
             ) {
               return "Option trading not supported";
+            }
+          }
+          if (context === "crypto_trade") {
+            if (!brokers_with_crypto.includes(connection.brokerage!.slug!)) {
+              return "Crypto trading not supported";
             }
           }
           return false; // No issues, account is selectable
