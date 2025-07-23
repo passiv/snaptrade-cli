@@ -58,37 +58,43 @@ export async function selectAccount({
     await snaptrade.connections.listBrokerageAuthorizations(user)
   ).data;
 
-  const choices = connections.flatMap((connection) => [
-    new Separator(`-- ${connection.brokerage!.name} --`),
-    ...accountsByConnection[connection.id!]?.map((acct) => ({
-      name: `${acct.name} - ${acct.balance.total?.amount?.toLocaleString(
-        "en-US",
-        {
-          style: "currency",
-          currency: acct.balance.total.currency,
-        }
-      )}`,
-      value: acct.id,
-      disabled: (() => {
-        // If there's no context, all accounts are valid
-        if (!context) return false;
-        // If trying to trade, check if the connection is disabled or read-only
-        if (context === "equity_trade" || context === "option_trade") {
-          if (connection.disabled) return "Connection disabled";
-          if (connection.type === "read") return "Read-only connection";
-        }
-        // For options, check if the brokerage supports multi-leg options
-        if (context === "option_trade") {
-          if (
-            !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
-          ) {
-            return "Option trading not supported";
+  const choices = connections.flatMap((connection) => {
+    const accounts = accountsByConnection[connection.id!];
+    if (!accounts || accounts.length === 0) {
+      return []; // Skip if no accounts for this connection
+    }
+    return [
+      new Separator(`-- ${connection.brokerage!.name} --`),
+      ...accounts.map((acct) => ({
+        name: `${acct.name} - ${acct.balance.total?.amount?.toLocaleString(
+          "en-US",
+          {
+            style: "currency",
+            currency: acct.balance.total.currency,
           }
-        }
-        return false; // No issues, account is selectable
-      })(),
-    })),
-  ]);
+        )}`,
+        value: acct.id,
+        disabled: (() => {
+          // If there's no context, all accounts are valid
+          if (!context) return false;
+          // If trying to trade, check if the connection is disabled or read-only
+          if (context === "equity_trade" || context === "option_trade") {
+            if (connection.disabled) return "Connection disabled";
+            if (connection.type === "read") return "Read-only connection";
+          }
+          // For options, check if the brokerage supports multi-leg options
+          if (context === "option_trade") {
+            if (
+              !brokers_with_mleg_options.includes(connection.brokerage!.slug!)
+            ) {
+              return "Option trading not supported";
+            }
+          }
+          return false; // No issues, account is selectable
+        })(),
+      })),
+    ];
+  });
 
   const accountId = await select({
     message: "Select an account to use:",
