@@ -25,8 +25,6 @@ export async function selectAccount({
   context?: "option_trade" | "equity_trade" | "crypto_trade";
 }) {
   const user = await loadOrRegisterUser(snaptrade);
-  const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
-    .data;
 
   // Skip the selector is the user wants to use the last account and it still exists
   if (useLastAccount) {
@@ -35,14 +33,21 @@ export async function selectAccount({
     if (!accountId) {
       console.log("⚠️ No last account found. Falling back to selector.");
     } else {
-      const account = accounts.find((acct) => acct.id === accountId);
-      if (!account) {
+      try {
+        const accountResponse =
+          await snaptrade.accountInformation.getUserAccountDetails({
+            ...user,
+            accountId,
+          });
+        return accountResponse.data;
+      } catch (error) {
         console.log("⚠️ Last account not found. Falling back to selector.");
-      } else {
-        return account;
       }
     }
   }
+
+  const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
+    .data;
 
   // Group accounts by connection so we can display them under their respective brokerages
   const accountsByConnection = accounts.reduce(
