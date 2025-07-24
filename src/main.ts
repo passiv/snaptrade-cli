@@ -1,10 +1,11 @@
 #!/usr/bin/env node
+import "./patch-axios.cjs"; // Ensure axios interceptors are set up before any requests
+import { input, password } from "@inquirer/prompts";
+import chalk from "chalk";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { registerCommands } from "./commands/index.ts";
 import { CONFIG_FILE, getSettings, saveSettings } from "./utils/settings.ts";
-import { input, password } from "@inquirer/prompts";
-import chalk from "chalk";
 
 async function initializeSnaptrade(): Promise<Snaptrade> {
   // Load client ID and consumer key from settings
@@ -94,7 +95,8 @@ program
     "--useLastAccount",
     "Use the last selected account for account specific commands",
     false
-  );
+  )
+  .option("--verbose", "Enable verbose output", false);
 
 registerCommands(program, snaptrade);
 
