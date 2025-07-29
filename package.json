@@ -2,7 +2,13 @@
   "name": "@passiv/snaptrade-cli",
   "version": "0.1.1",
   "bin": {
-    "snaptrade": "src/main.ts"
+    "snaptrade": "dist/main.js",
+    "snaptrade-dev": "src/main.ts"
+  },
+  "scripts": {
+    "prebuild": "node scripts/strip-ts-imports.js",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "git checkout src"
   },
   "repository": "https://github.com/passiv/snaptrade-cli",
   "publishConfig": {
@@ -13,6 +19,7 @@
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
+    "fast-glob": "^3.3.3",
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
