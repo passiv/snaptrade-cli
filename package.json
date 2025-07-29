@@ -1,7 +1,11 @@
 {
-  "name": "snaptrade-cli",
+  "name": "@passiv/snaptrade-cli",
+  "version": "0.1.0",
   "bin": {
     "snaptrade": "src/main.ts"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
