@@ -1,9 +1,12 @@
 {
-  "name": "@passiv/snaptrade-cli",
-  "version": "0.1.2",
+  "name": "@snaptrade/snaptrade-cli",
+  "version": "0.1.0",
   "bin": {
     "snaptrade": "dist/main.js",
     "snaptrade-dev": "src/main.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "prebuild": "node scripts/prepare-build.mjs",
@@ -11,9 +14,6 @@
     "postbuild": "cp src/patch-axios.cjs dist/"
   },
   "repository": "https://github.com/passiv/snaptrade-cli",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
     "chalk": "^5.4.1",
