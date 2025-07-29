@@ -28,10 +28,10 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
         return;
       }
 
-      const response = await snaptrade.trading.cancelUserAccountOrder({
+      const response = await snaptrade.trading.cancelOrder({
         ...user,
         accountId: account.id,
-        brokerage_order_id: orderId,
+        brokerageOrderId: orderId,
       });
 
       console.log("✅ Order cancellation submitted!");
