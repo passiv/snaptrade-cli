@@ -27,7 +27,7 @@
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
-    "snaptrade-typescript-sdk": "^9.0.118"
+    "snaptrade-typescript-sdk": "^9.0.120"
   },
   "devDependencies": {
     "@types/node": "^24.0.14",
