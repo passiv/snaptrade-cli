@@ -26,7 +26,7 @@ When you run `snaptrade` for the first time, you need to provide your SnapTrade 
 
 Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the connection portal in your default browser.
 
-<img width="1260" height="1098" src="/docs/snaptrade-connect.png />
+<img width="1260" height="1098" src="/docs/snaptrade-connect.png" />
 
 ---
 
