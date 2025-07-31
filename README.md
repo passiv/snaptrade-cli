@@ -1,6 +1,6 @@
 # SnapTrade CLI
 
-This is the quickest way to get started with the [SnapTrade](https://snaptrade.com/) API. Link your own brokerage accounts, manage your portfolios, and execute live trades all from the command line!
+`snaptrade` is the quickest way to get started with the [SnapTrade](https://snaptrade.com/) API. Link your own brokerage accounts, manage your portfolios, and execute live trades all from the command line!
 
 ## 🚀 Quick Start
 
@@ -15,8 +15,6 @@ Then run the CLI:
 ```bash
 snaptrade
 ```
-
-## 📚 Commands
 
 When you run `snaptrade` for the first time, you need to provide your SnapTrade client ID and consumer key
 
@@ -60,6 +58,37 @@ To submit a multi-leg option order, use `snaptrade trade option`. It'll prompt y
 To cancel an order, use `snaptrade cancel-order`. It'll prompt you for confirmation before continuing.
 
 <img width="1315" height="824" src="/docs/snaptrade-cancel-order.png" />
+
+## 📚 Commands
+
+```
+Usage: snaptrade [options] [command]
+
+CLI tool to interact with SnapTrade API
+
+Options:
+  -V, --version              output the version number
+  --useLastAccount           Use the last selected account for account specific commands (default: false)
+  --verbose                  Enable verbose output (default: false)
+  -h, --help                 display help for command
+
+Commands:
+  status                     Get current status of your SnapTrade API credentials
+  brokers                    List all brokers available to connect
+  connect [options]          Establish a new broker connection
+  reconnect [connectionId]   Re-establish an existing disabled connection
+  disconnect <connectionId>  Remove an existing broker connection
+  connections                List all broker connections
+  accounts                   List all connected accounts
+  positions [options]        List all positions for a given account
+  recent-orders              List the most recent orders (within last 24 hours) for a given account
+  orders                     List all orders for a given account
+  instruments                Get a list of available instruments from a broker
+  quote [symbols]            Get the latest market quote
+  trade [options]            Execute different types of trades (equity, options, crypto)
+  cancel-order [options]     Cancel an existing order
+  help [command]             display help for command
+```
 
 ## ☕️ Development
 
