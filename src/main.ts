@@ -6,6 +6,9 @@ import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { registerCommands } from "./commands/index.ts";
 import { CONFIG_FILE, getSettings, saveSettings } from "./utils/settings.ts";
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
 async function initializeSnaptrade(): Promise<Snaptrade> {
   // Load client ID and consumer key from settings
@@ -84,13 +87,18 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
   }
 }
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8")
+);
 const program = new Command();
 const snaptrade = await initializeSnaptrade();
 
 program
   .name("snaptrade")
   .description("CLI tool to interact with SnapTrade API")
-  .version("0.1.0")
+  .version(packageJson.version)
   .option(
     "--useLastAccount",
     "Use the last selected account for account specific commands",
