@@ -3,6 +3,7 @@ import { select } from "@inquirer/prompts";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { getSettings, saveSettings } from "./settings.ts";
 import { loadOrRegisterUser } from "./user.ts";
+import chalk from "chalk";
 
 const brokers_with_mleg_options = [
   "WEBULL",
@@ -107,6 +108,18 @@ export async function selectAccount({
       })),
     ];
   });
+
+  if (
+    choices.every(
+      (choice) =>
+        choice instanceof Separator || ("disabled" in choice && choice.disabled)
+    )
+  ) {
+    console.error(
+      `No valid accounts available. Connect an account with ${chalk.green(`snaptrade connect`)} or fix your disabled connections with ${chalk.green(`snaptrade reconnect`)}.`
+    );
+    process.exit(1);
+  }
 
   const accountId = await select({
     message: "Select an account to use:",
