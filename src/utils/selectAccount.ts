@@ -72,14 +72,13 @@ export async function selectAccount({
       return []; // Skip if no accounts for this connection
     }
     return [
-      new Separator(`-- ${connection.brokerage!.name} --`),
+      new Separator(chalk.bold(`${connection.brokerage!.name?.toUpperCase()}`)),
       ...accounts.map((acct) => ({
-        name: `${acct.name} - ${acct.balance.total?.amount?.toLocaleString(
-          "en-US",
-          {
+        name: `${acct.name?.padEnd(45)} ${chalk.dim(
+          acct.balance.total?.amount?.toLocaleString("en-US", {
             style: "currency",
             currency: acct.balance.total.currency,
-          }
+          })
         )}`,
         value: acct.id,
         disabled: (() => {
@@ -125,6 +124,7 @@ export async function selectAccount({
     message: "Select an account to use:",
     choices,
     pageSize: 30,
+    loop: false,
   });
 
   saveSettings({
