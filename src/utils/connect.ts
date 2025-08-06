@@ -61,9 +61,7 @@ export async function handleConnect({
       );
 
       console.log(
-        `To disconnect, run ${chalk.green(
-          `snaptrade disconnect --connectionId ${newOrUpdated.id}`
-        )}.`
+        `To disconnect, run ${chalk.green(`snaptrade disconnect ${newOrUpdated.id}`)}.`
       );
     }
   }, 5000);
