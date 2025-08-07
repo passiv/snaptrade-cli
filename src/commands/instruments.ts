@@ -5,6 +5,7 @@ import { loadOrRegisterUser } from "../utils/user.ts";
 import { search, select } from "@inquirer/prompts";
 import ora from "ora";
 import Table from "cli-table3";
+import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 export function instrumentsCommand(snaptrade: Snaptrade): Command {
   return new Command("instruments")
@@ -41,17 +42,21 @@ export function instrumentsCommand(snaptrade: Snaptrade): Command {
         return;
       }
 
-      const spinner = ora(
-        `Loading all available instruments for ${broker.display_name}, this could take a little while...`
-      ).start();
-      const instruments =
-        await snaptrade.referenceData.listAllBrokerageInstruments({
-          brokerageId: broker.id!,
-        });
-      spinner.stop();
+      const instruments = await withDebouncedSpinner(
+        `Loading all available instruments for ${broker.display_name}, this could take a little while...`,
+        async () => {
+          const instrumentsResponse =
+            await snaptrade.referenceData.listAllBrokerageInstruments({
+              brokerageId: broker.id!,
+            });
+          return instrumentsResponse.data.instruments;
+        }
+      );
 
-      if (instruments.data.instruments?.length === 0) {
-        console.log("No instruments found for the selected broker.");
+      if (instruments == null || instruments.length === 0) {
+        console.log(
+          "No instruments found. See https://snaptrade.notion.site/66793431ad0b416489eaabaf248d0afb?v=241feaa69a1c80a6b2f9000cdee4883b&source=copy_link for brokers with available instruments."
+        );
         return;
       }
 
@@ -59,7 +64,7 @@ export function instrumentsCommand(snaptrade: Snaptrade): Command {
         head: ["Symbol", "Exchange", "Tradable", "Fractionable"],
       });
 
-      instruments.data.instruments?.forEach((instrument) => {
+      instruments.forEach((instrument) => {
         table.push([
           instrument.symbol,
           instrument.exchange_mic,
