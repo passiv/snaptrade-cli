@@ -40,7 +40,9 @@ export function reconnectCommand(snaptrade: Snaptrade): Command {
       })();
 
       if (!existingConnectionId) {
-        console.log("No disabled connections found.");
+        console.log(
+          "No disabled connections found, therefore there's no need to reconnect."
+        );
         return;
       }
 
