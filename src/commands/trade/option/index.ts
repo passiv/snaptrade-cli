@@ -2,6 +2,7 @@ import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
 import type {
+  Balance,
   MlegActionStrict,
   MlegInstrumentType,
 } from "snaptrade-typescript-sdk";
@@ -18,7 +19,13 @@ import { straddleCommand } from "./straddle.ts";
 import { strangleCommand } from "./strangle.ts";
 import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
-import { logLine, printDivider } from "../../../utils/preview.ts";
+import {
+  logLine,
+  printDivider,
+  printAccountSection,
+  printOrderParams,
+} from "../../../utils/preview.ts";
+import { withDebouncedSpinner } from "../../../utils/withDebouncedSpinner.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option")
@@ -56,12 +63,15 @@ export type TradeArgs = {
   action: "BUY" | "SELL";
   quantity: number;
   tif: (typeof TIME_IN_FORCE)[number];
+  balance?: Balance;
 };
 
 export async function processCommonOptionArgs(
   snaptrade: Snaptrade,
   command: any
 ): Promise<TradeArgs> {
+  const user = await loadOrRegisterUser(snaptrade);
+
   const { ticker, orderType, limitPrice, action, tif } =
     command.parent.parent.opts();
 
@@ -81,6 +91,15 @@ export async function processCommonOptionArgs(
     useLastAccount: command.parent.parent.parent.opts().useLastAccount,
   });
 
+  const balanceResponse = await withDebouncedSpinner(
+    "Generating trade preview, please wait...",
+    async () =>
+      snaptrade.accountInformation.getUserAccountBalance({
+        ...user,
+        accountId: selectedAccount.id,
+      })
+  );
+
   return {
     account: selectedAccount,
     ticker,
@@ -89,6 +108,7 @@ export async function processCommonOptionArgs(
     action,
     quantity,
     tif,
+    balance: balanceResponse.data[0], // TODO Handle multiple currencies
   };
 }
 
@@ -99,16 +119,13 @@ export async function confirmTrade(
   limitPrice: string | undefined,
   orderType: string,
   action: string,
-  tif: string
+  tif: string,
+  balance?: Balance
 ) {
   // Pretty preview similar to equity flow
   console.log(chalk.bold("\n📄 Trade Preview\n"));
   const currency = account.balance.total?.currency;
-  logLine("🏦", "Account", account.name!);
-  logLine("💰", "Total Value", {
-    amount: account.balance.total?.amount!,
-    currency,
-  });
+  printAccountSection({ account, balance });
   console.log();
   logLine("📈", "Underlying", ticker);
   // Render legs in aligned columns; first leg on same line as label
@@ -143,17 +160,13 @@ export async function confirmTrade(
       logLine("  ", "", makeLine(rows[i]));
     }
   }
-  logLine(
-    "🛒",
-    "Action",
-    action === "BUY" ? chalk.green(action) : chalk.red(action)
-  );
-  logLine("💡", "Order Type", orderType);
-  logLine("🎯", "Limit Price", {
-    amount: limitPrice ? Number(limitPrice) : undefined,
+  printOrderParams({
+    action: action as "BUY" | "SELL",
+    orderType,
+    limitPrice: limitPrice ? Number(limitPrice) : undefined,
+    timeInForce: tif,
     currency,
   });
-  logLine("⏳", "Time in Force", tif);
 
   printDivider();
 
@@ -174,18 +187,19 @@ export async function placeTrade(
 ) {
   const user = await loadOrRegisterUser(snaptrade);
 
-  const { ticker, orderType, limitPrice, action, quantity, tif, account } =
+  const { ticker, orderType, limitPrice, action, tif, account, balance } =
     trade;
-  const legsInput = legs.map((leg) => ({
-    instrument: {
-      instrument_type: "OPTION" as MlegInstrumentType,
-      symbol: generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type),
-    },
-    action: `${leg.action}_TO_OPEN` as MlegActionStrict,
-    units: leg.quantity,
-  }));
 
-  await confirmTrade(account, ticker, legs, limitPrice, orderType, action, tif);
+  await confirmTrade(
+    account,
+    ticker,
+    legs,
+    limitPrice,
+    orderType,
+    action,
+    tif,
+    balance
+  );
 
   const orderTypeInput = (() => {
     switch (orderType as (typeof ORDER_TYPES)[number]) {
@@ -201,6 +215,15 @@ export async function placeTrade(
         throw new Error(`Unsupported order type: ${orderType}`);
     }
   })();
+
+  const legsInput = legs.map((leg) => ({
+    instrument: {
+      instrument_type: "OPTION" as MlegInstrumentType,
+      symbol: generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type),
+    },
+    action: `${leg.action}_TO_OPEN` as MlegActionStrict,
+    units: leg.quantity,
+  }));
 
   const response = await snaptrade.trading.placeMlegOrder({
     ...user,

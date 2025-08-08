@@ -8,7 +8,12 @@ import type {
 } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../utils/selectAccount.ts";
-import { logLine, printDivider } from "../../utils/preview.ts";
+import {
+  logLine,
+  printDivider,
+  printAccountSection,
+  printOrderParams,
+} from "../../utils/preview.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
@@ -26,7 +31,7 @@ type TradePreviewParams = {
   balance: Balance;
 };
 
-export function printTradePreview({
+function printTradePreview({
   account,
   ticker,
   quote,
@@ -64,19 +69,7 @@ export function printTradePreview({
   console.log(chalk.bold("\n📄 Trade Preview\n"));
 
   const currency = account.balance.total?.currency;
-  logLine("🏦", "Account", account.name!);
-  logLine("💰", "Total Value", {
-    amount: account.balance.total?.amount!,
-    currency,
-  });
-  logLine("💰", "Cash", {
-    amount: balance.cash!,
-    currency: balance.currency?.code,
-  });
-  logLine("💰", "Buying Power", {
-    amount: balance.buying_power!,
-    currency: balance.currency?.code,
-  });
+  printAccountSection({ account, balance });
   console.log();
   logLine("📈", "Ticker", ticker);
   if (quote != null) {
@@ -99,16 +92,16 @@ export function printTradePreview({
     );
   }
 
-  logLine(
-    "🛒",
-    "Action",
-    action === "BUY" ? chalk.green(action) : chalk.red(action)
-  );
+  printOrderParams({
+    action,
+    orderType,
+    limitPrice,
+    timeInForce,
+    currency,
+  });
+
   logLine("🔢", "Shares", quantity);
   logLine("💵", "Dollars", { amount: notional, currency });
-  logLine("💡", "Order Type", orderType);
-  logLine("🎯", "Limit Price", { amount: limitPrice, currency });
-  logLine("⏳", "Time in Force", timeInForce);
 
   console.log();
 

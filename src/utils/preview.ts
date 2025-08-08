@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import type { Account, Balance } from "snaptrade-typescript-sdk";
 
 export type PrintableValue =
   | string
@@ -25,4 +26,55 @@ export function printDivider() {
   console.log(
     chalk.gray("\n-----------------------------------------------------")
   );
+}
+
+export function printAccountSection({
+  account,
+  balance,
+}: {
+  account: Account;
+  balance?: Balance;
+}) {
+  const currency = account.balance.total?.currency;
+  logLine("🏦", "Account", account.name!);
+  logLine("💰", "Total Value", {
+    amount: account.balance.total?.amount!,
+    currency,
+  });
+  if (balance) {
+    logLine("💰", "Cash", {
+      amount: balance.cash!,
+      currency: balance.currency?.code || currency,
+    });
+    logLine("💰", "Buying Power", {
+      amount: balance.buying_power!,
+      currency: balance.currency?.code || currency,
+    });
+  }
+}
+
+export function printOrderParams({
+  action,
+  orderType,
+  limitPrice,
+  timeInForce,
+  currency,
+}: {
+  action: "BUY" | "SELL";
+  orderType: string;
+  limitPrice?: number;
+  timeInForce: string;
+  currency?: string;
+}) {
+  logLine(
+    "🛒",
+    "Action",
+    action === "BUY" ? chalk.green(action) : chalk.red(action)
+  );
+  logLine("💡", "Order Type", orderType);
+  logLine("🎯", "Limit Price", {
+    amount: limitPrice,
+    currency,
+  });
+  logLine("⏳", "Time in Force", timeInForce);
 }
