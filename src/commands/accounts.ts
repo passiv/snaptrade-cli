@@ -3,6 +3,7 @@ import { Snaptrade } from "snaptrade-typescript-sdk";
 import Table from "cli-table3";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import chalk from "chalk";
+import { formatDistanceToNow } from "date-fns";
 
 export function accountsCommand(snaptrade: Snaptrade): Command {
   return new Command("accounts")
@@ -30,7 +31,15 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
       });
 
       const table = new Table({
-        head: ["ID", "Broker", "Name", "Account #", "Total Value"],
+        head: [
+          "ID",
+          "Broker",
+          "Name",
+          "Type",
+          "Account #",
+          "Total Value",
+          "Last Sync",
+        ],
       });
 
       for (const account of accounts) {
@@ -38,16 +47,25 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
           account.id,
           account.institution_name,
           account.name,
+          account.raw_type,
           account.number,
           account.balance.total?.amount?.toLocaleString("en-US", {
             style: "currency",
             currency: account.balance.total.currency,
           }),
+          account.sync_status.holdings?.last_successful_sync
+            ? formatDistanceToNow(
+                account.sync_status.holdings.last_successful_sync,
+                {
+                  addSuffix: true,
+                }
+              )
+            : "N/A",
         ]);
       }
 
       table.push([
-        { colSpan: 4, content: "Total", hAlign: "right" },
+        { colSpan: 5, content: "Total", hAlign: "right" },
         total.toLocaleString("en-US", {
           style: "currency",
           currency: accounts[0].balance.total?.currency,
