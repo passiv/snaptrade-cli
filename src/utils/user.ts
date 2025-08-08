@@ -1,7 +1,7 @@
 import os from "os";
 import chalk from "chalk";
 import { Snaptrade, SnaptradeError } from "snaptrade-typescript-sdk";
-import { getSettings, saveSettings } from "./settings.ts";
+import { getActiveProfileName, getProfile, saveProfile } from "./settings.ts";
 
 export type User = {
   userId: string;
@@ -9,12 +9,12 @@ export type User = {
 };
 
 export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
-  const settings = getSettings();
+  const profile = getProfile();
 
-  if (settings.userId && settings.userSecret) {
+  if (profile.userId && profile.userSecret) {
     return {
-      userId: settings.userId,
-      userSecret: settings.userSecret,
+      userId: profile.userId,
+      userSecret: profile.userSecret,
     };
   }
 
@@ -22,14 +22,17 @@ export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
     chalk.yellow("🔐 No user found in settings. Creating new SnapTrade user...")
   );
 
-  const userId = `snaptrade-cli-${os.userInfo().username}`;
+  const activeProfile = getActiveProfileName();
+  const suffix =
+    activeProfile && activeProfile !== "default" ? `-${activeProfile}` : "";
+  const userId = `snaptrade-cli-${os.userInfo().username}${suffix}`;
 
   async function register() {
     const response = await snaptrade.authentication.registerSnapTradeUser({
       userId,
     });
     console.log(chalk.green(`✅ User created: ${response.data.userId}`));
-    saveSettings({
+    saveProfile({
       userId: response.data.userId,
       userSecret: response.data.userSecret,
     });

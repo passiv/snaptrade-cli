@@ -3,22 +3,22 @@ import "./patch-axios.cjs"; // Ensure axios interceptors are set up before any r
 import { input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
-import { registerCommands } from "./commands/index.ts";
-import { CONFIG_FILE, getSettings, saveSettings } from "./utils/settings.ts";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
+import { Snaptrade } from "snaptrade-typescript-sdk";
 import { fileURLToPath } from "url";
+import { registerCommands } from "./commands/index.ts";
+import { CONFIG_FILE, getProfile, saveProfile } from "./utils/settings.ts";
 
 async function initializeSnaptrade(version: string): Promise<Snaptrade> {
-  // Load client ID and consumer key from settings
-  const settings = getSettings();
+  // Load client ID and consumer key from the active profile
+  const profile = getProfile();
 
-  if (settings.clientId && settings.consumerKey) {
+  if (profile.clientId && profile.consumerKey) {
     // TODO may want to validate these credentials and reprompt if invalid
     return new Snaptrade({
-      clientId: settings.clientId,
-      consumerKey: settings.consumerKey,
+      clientId: profile.clientId,
+      consumerKey: profile.consumerKey,
       userAgent: `snaptrade-cli/${version}`,
     });
   }
@@ -71,7 +71,7 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
   try {
     await snaptrade.referenceData.getPartnerInfo();
     // This indicates the credentials are valid
-    saveSettings({
+    saveProfile({
       clientId,
       consumerKey,
     });

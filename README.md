@@ -77,7 +77,7 @@ Commands:
   brokers                    List all brokers available to connect
   connect [options]          Establish a new broker connection
   reconnect [connectionId]   Re-establish an existing disabled connection
-  disconnect <connectionId>  Remove an existing broker connection
+  disconnect [connectionId]  Remove an existing broker connection
   connections                List all broker connections
   accounts                   List all connected accounts
   positions [options]        List all positions for a given account
@@ -87,6 +87,7 @@ Commands:
   quote [symbols]            Get the latest market quote
   trade [options]            Execute different types of trades (equity, options, crypto)
   cancel-order [options]     Cancel an existing order
+  profiles                   Manage SnapTrade CLI profiles
   help [command]             display help for command
 ```
 
@@ -103,3 +104,5 @@ npm install
 npm link
 snaptrade
 ```
+
+To release a new version, run `npm run release`

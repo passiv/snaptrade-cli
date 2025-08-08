@@ -1,9 +1,9 @@
 import { Separator } from "@inquirer/core";
 import { select } from "@inquirer/prompts";
-import { Snaptrade } from "snaptrade-typescript-sdk";
-import { getSettings, saveSettings } from "./settings.ts";
-import { loadOrRegisterUser } from "./user.ts";
 import chalk from "chalk";
+import { Snaptrade } from "snaptrade-typescript-sdk";
+import { getProfile, saveProfile } from "./settings.ts";
+import { loadOrRegisterUser } from "./user.ts";
 
 const brokers_with_mleg_options = [
   "WEBULL",
@@ -29,8 +29,8 @@ export async function selectAccount({
 
   // Skip the selector is the user wants to use the last account and it still exists
   if (useLastAccount) {
-    const settings = getSettings();
-    const accountId = settings.lastAccountId;
+    const profile = getProfile();
+    const accountId = profile.lastAccountId;
     if (!accountId) {
       console.log("⚠️ No last account found. Falling back to selector.");
     } else {
@@ -127,7 +127,7 @@ export async function selectAccount({
     loop: false,
   });
 
-  saveSettings({
+  saveProfile({
     lastAccountId: accountId,
   });
 
