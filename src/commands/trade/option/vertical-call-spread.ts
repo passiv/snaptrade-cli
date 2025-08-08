@@ -18,14 +18,14 @@ export function verticalCallSpreadCommand(snaptrade: Snaptrade): Command {
         {
           type: "CALL",
           action: trade.action,
-          strike: low,
+          strike: Number(low),
           expiration: exp,
           quantity: trade.quantity,
         },
         {
           type: "CALL",
           action: trade.action === "BUY" ? "SELL" : "BUY",
-          strike: high,
+          strike: Number(high),
           expiration: exp,
           quantity: trade.quantity,
         },

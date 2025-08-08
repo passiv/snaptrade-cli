@@ -18,14 +18,14 @@ export function verticalPutSpreadCommand(snaptrade: Snaptrade): Command {
         {
           type: "PUT",
           action: trade.action,
-          strike: high,
+          strike: Number(high),
           expiration: exp,
           quantity: trade.quantity,
         },
         {
           type: "PUT",
           action: trade.action === "BUY" ? "SELL" : "BUY",
-          strike: low,
+          strike: Number(low),
           expiration: exp,
           quantity: trade.quantity,
         },

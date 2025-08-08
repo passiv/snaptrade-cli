@@ -8,6 +8,7 @@ import type {
 } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../utils/selectAccount.ts";
+import { logLine, printDivider } from "../../utils/preview.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
@@ -62,29 +63,6 @@ export function printTradePreview({
 
   console.log(chalk.bold("\n📄 Trade Preview\n"));
 
-  function logLine(
-    icon: string,
-    label: string,
-    value:
-      | string
-      | number
-      | { amount: number | undefined; currency: string | undefined }
-      | undefined
-  ) {
-    if (value == null) {
-      return;
-    }
-    if (
-      typeof value === "object" &&
-      "amount" in value &&
-      value.amount == null
-    ) {
-      return;
-    }
-    console.log(
-      `  ${icon} ${chalk.bold(label.padEnd(15))} ${typeof value === "string" || typeof value === "number" ? value : `${value.amount!.toLocaleString("en-US", { style: "currency", currency: value.currency })}`}`
-    );
-  }
   const currency = account.balance.total?.currency;
   logLine("🏦", "Account", account.name!);
   logLine("💰", "Total Value", {
@@ -143,9 +121,7 @@ export function printTradePreview({
   if (notional != null) {
     logLine("📊", "Est. Shares", estimatedQty?.toFixed(4));
   }
-  console.log(
-    chalk.gray("\n-----------------------------------------------------")
-  );
+  printDivider();
 }
 
 export function equityCommand(snaptrade: Snaptrade): Command {

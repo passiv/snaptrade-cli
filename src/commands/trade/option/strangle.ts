@@ -18,14 +18,14 @@ export function strangleCommand(snaptrade: Snaptrade): Command {
         {
           type: "PUT",
           action: trade.action,
-          strike: low,
+          strike: Number(low),
           expiration: exp,
           quantity: trade.quantity,
         },
         {
           type: "CALL",
           action: trade.action,
-          strike: high,
+          strike: Number(high),
           expiration: exp,
           quantity: trade.quantity,
         },

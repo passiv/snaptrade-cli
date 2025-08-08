@@ -1,4 +1,5 @@
 import { confirm } from "@inquirer/prompts";
+import chalk from "chalk";
 import { Command } from "commander";
 import type {
   MlegActionStrict,
@@ -17,6 +18,7 @@ import { straddleCommand } from "./straddle.ts";
 import { strangleCommand } from "./strangle.ts";
 import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
+import { logLine, printDivider } from "../../../utils/preview.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option")
@@ -41,7 +43,7 @@ export function optionCommand(snaptrade: Snaptrade): Command {
 export type Leg = {
   type: "CALL" | "PUT";
   action: "BUY" | "SELL";
-  strike: string;
+  strike: number;
   expiration: string;
   quantity: number;
 };
@@ -99,27 +101,61 @@ export async function confirmTrade(
   action: string,
   tif: string
 ) {
-  const trade = {
-    accountId: account.id,
-    account: `${account.name} - ${account.balance.total?.amount?.toLocaleString(
-      "en-US",
-      {
-        style: "currency",
-        currency: account.balance.total.currency,
-      }
-    )}`,
-    ticker,
-    legs: legs.map(
-      (leg) =>
-        `${leg.action.padEnd(4)} ${leg.quantity} ${generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type)}`
-    ),
-    action,
-    orderType,
-    timeInForce: tif,
-    limitPrice,
+  // Pretty preview similar to equity flow
+  console.log(chalk.bold("\n📄 Trade Preview\n"));
+  const currency = account.balance.total?.currency;
+  logLine("🏦", "Account", account.name!);
+  logLine("💰", "Total Value", {
+    amount: account.balance.total?.amount!,
+    currency,
+  });
+  console.log();
+  logLine("📈", "Underlying", ticker);
+  // Render legs in aligned columns; first leg on same line as label
+  const rows = legs.map((leg) => ({
+    action:
+      leg.action === "BUY" ? chalk.green(leg.action) : chalk.red(leg.action),
+    qty: String(leg.quantity),
+    type: leg.type,
+    strike: leg.strike.toLocaleString("en-US", { style: "currency", currency }),
+    exp: leg.expiration,
+  }));
+  const widths = {
+    action: Math.max(...rows.map((r) => r.action.length)),
+    qty: Math.max(...rows.map((r) => r.qty.length)),
+    type: Math.max(...rows.map((r) => r.type.length)),
+    strike: Math.max(...rows.map((r) => r.strike.length)),
+    exp: Math.max(...rows.map((r) => r.exp.length)),
   };
+  const makeLine = (r: (typeof rows)[number]) =>
+    [
+      r.action.padEnd(widths.action),
+      r.qty.padStart(widths.qty),
+      r.type.padEnd(widths.type),
+      r.strike.padStart(widths.strike),
+      r.exp.padEnd(widths.exp),
+    ].join("  ");
+  if (rows.length > 0) {
+    // First leg on the same line as the label
+    logLine("🧩", "Legs", makeLine(rows[0]));
+    // Subsequent legs aligned under the first leg
+    for (let i = 1; i < rows.length; i++) {
+      logLine("  ", "", makeLine(rows[i]));
+    }
+  }
+  logLine(
+    "🛒",
+    "Action",
+    action === "BUY" ? chalk.green(action) : chalk.red(action)
+  );
+  logLine("💡", "Order Type", orderType);
+  logLine("🎯", "Limit Price", {
+    amount: limitPrice ? Number(limitPrice) : undefined,
+    currency,
+  });
+  logLine("⏳", "Time in Force", tif);
 
-  console.log(trade);
+  printDivider();
 
   const result = await confirm({
     message: "Are you sure you want to place this trade?",

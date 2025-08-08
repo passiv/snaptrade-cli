@@ -17,7 +17,7 @@ export function putCommand(snaptrade: Snaptrade): Command {
         {
           type: "PUT",
           action: trade.action,
-          strike,
+          strike: Number(strike),
           expiration: exp,
           quantity: trade.quantity,
         },

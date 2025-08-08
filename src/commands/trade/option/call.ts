@@ -17,7 +17,7 @@ export function callCommand(snaptrade: Snaptrade): Command {
         {
           type: "CALL",
           action: trade.action,
-          strike,
+          strike: Number(strike),
           expiration: exp,
           quantity: trade.quantity,
         },
