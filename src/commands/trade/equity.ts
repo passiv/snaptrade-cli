@@ -10,6 +10,7 @@ import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
+import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
 
 type TradePreviewParams = {
   account: Account;
@@ -140,7 +141,7 @@ export function printTradePreview({
     });
   }
   if (notional != null) {
-    logLine("📊", "Est. Shares", estimatedQty);
+    logLine("📊", "Est. Shares", estimatedQty?.toFixed(4));
   }
   console.log(
     chalk.gray("\n-----------------------------------------------------")
@@ -180,18 +181,22 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         context: "equity_trade",
       });
 
-      const [quoteResponse, balanceResponse] = await Promise.all([
-        snaptrade.trading.getUserAccountQuotes({
-          ...user,
-          accountId: account.id,
-          symbols: ticker,
-          useTicker: true,
-        }),
-        snaptrade.accountInformation.getUserAccountBalance({
-          ...user,
-          accountId: account.id,
-        }),
-      ]);
+      const [quoteResponse, balanceResponse] = await withDebouncedSpinner(
+        "Generating trade preview, please wait...",
+        async () =>
+          Promise.all([
+            snaptrade.trading.getUserAccountQuotes({
+              ...user,
+              accountId: account.id,
+              symbols: ticker,
+              useTicker: true,
+            }),
+            snaptrade.accountInformation.getUserAccountBalance({
+              ...user,
+              accountId: account.id,
+            }),
+          ])
+      );
 
       const trade = {
         account,
