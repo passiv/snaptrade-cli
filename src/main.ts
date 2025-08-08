@@ -10,7 +10,7 @@ import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-async function initializeSnaptrade(): Promise<Snaptrade> {
+async function initializeSnaptrade(version: string): Promise<Snaptrade> {
   // Load client ID and consumer key from settings
   const settings = getSettings();
 
@@ -19,6 +19,7 @@ async function initializeSnaptrade(): Promise<Snaptrade> {
     return new Snaptrade({
       clientId: settings.clientId,
       consumerKey: settings.consumerKey,
+      userAgent: `snaptrade-cli/${version}`,
     });
   }
 
@@ -93,7 +94,7 @@ const packageJson = JSON.parse(
   readFileSync(join(__dirname, "..", "package.json"), "utf-8")
 );
 const program = new Command();
-const snaptrade = await initializeSnaptrade();
+const snaptrade = await initializeSnaptrade(packageJson.version);
 
 program
   .name("snaptrade")
