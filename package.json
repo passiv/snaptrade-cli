@@ -1,6 +1,6 @@
 {
   "name": "@snaptrade/snaptrade-cli",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "bin": {
     "snaptrade": "./bin/snaptrade.js"
   },
