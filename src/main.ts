@@ -9,6 +9,7 @@ import { Snaptrade } from "snaptrade-typescript-sdk";
 import { fileURLToPath } from "url";
 import { registerCommands } from "./commands/index.ts";
 import { CONFIG_FILE, getProfile, saveProfile } from "./utils/settings.ts";
+import { createLazySnapTrade } from "./utils/lazySnapTrade.ts";
 
 async function initializeSnaptrade(version: string): Promise<Snaptrade> {
   // Load client ID and consumer key from the active profile
@@ -94,7 +95,10 @@ const packageJson = JSON.parse(
   readFileSync(join(__dirname, "..", "package.json"), "utf-8")
 );
 const program = new Command();
-const snaptrade = await initializeSnaptrade(packageJson.version);
+
+const snaptrade = createLazySnapTrade(() =>
+  initializeSnaptrade(packageJson.version)
+);
 
 program
   .name("snaptrade")

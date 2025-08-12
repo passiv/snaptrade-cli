@@ -31,5 +31,5 @@ export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(quoteCommand(snaptrade));
   program.addCommand(tradeCommand(snaptrade));
   program.addCommand(cancelOrderCommand(snaptrade));
-  program.addCommand(profilesCommand(snaptrade));
+  program.addCommand(profilesCommand());
 }

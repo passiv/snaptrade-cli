@@ -1,6 +1,6 @@
+import { select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
 import {
   deleteProfile,
   getActiveProfileName,
@@ -8,7 +8,7 @@ import {
   setActiveProfile,
 } from "../utils/settings.ts";
 
-export function profilesCommand(snaptrade: Snaptrade): Command {
+export function profilesCommand(): Command {
   const cmd = new Command("profiles").description(
     "Manage SnapTrade CLI profiles"
   );
@@ -30,11 +30,27 @@ export function profilesCommand(snaptrade: Snaptrade): Command {
     });
 
   cmd
-    .command("use <name>")
+    .command("use [name]")
     .description("Switch active profile (creates it if it doesn't exist)")
-    .action(async (name: string, opts: { register?: boolean }) => {
-      setActiveProfile(name);
-      console.log(`Active profile set to ${chalk.green(name)}`);
+    .action(async (name: string | undefined, opts: { register?: boolean }) => {
+      const profile = await (async () => {
+        if (name) {
+          return name;
+        }
+
+        const profiles = listProfiles();
+        const profile = await select({
+          message: "Select a profile to use:",
+          choices: profiles.map((profile) => ({
+            name: profile,
+            value: profile,
+          })),
+          loop: false,
+        });
+        return profile;
+      })();
+      setActiveProfile(profile);
+      console.log(`Active profile set to ${chalk.green(profile)}`);
     });
 
   cmd
