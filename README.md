@@ -18,26 +18,48 @@ snaptrade
 
 When you run `snaptrade` for the first time, you need to provide your SnapTrade client ID and consumer key
 
-<img width="1260" height="1098" src="/docs/snaptrade.png" />
+<img src="docs/snaptrade-start.png" />
 
 ---
 
-Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the connection portal in your default browser.
+Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the connection portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
-<img width="1260" height="1098" src="/docs/snaptrade-connect.png" />
+> [!NOTE]
+> A free key only has access to a limited set of brokers and cannot execute live trades at the moment.
+
+<img src="docs/snaptrade-connect.png" />
+<img src="docs/snaptrade-select.png" />
+<img src="docs/snaptrade-connect-complete.png" />
 
 ---
 
-Once connected, call `snaptrade connections` to list all connections
+To see which brokers are supported along with whether trading is enabled, you can run `snaptrade brokers`.
 
-<img width="1696" height="647" src="/docs/snaptrade-connections.png" />
+<img src="docs/snaptrade-brokers.png" />
+
+You can also specify the broker directly with `snaptrade connect --broker <broker slug>` to skip the broker selection step the Connection Portal.
+
+<img src="docs/snaptrade-connect-broker.png" />
+
+---
+
+Once connected, call `snaptrade connections` to list all current connections.
+
+<img src="docs/snaptrade-connections.png" />
+
+and `snaptrade accounts` to list all connected accounts.
+
+<img src="docs/snaptrade-accounts.png" />
 
 ---
 
 Use `snaptrade positions` to list all positions for an account. You'll be prompted to select an account first.
-<img width="1077" height="789" src="/docs/snaptrade-account-prompt.png" />
+<img src="docs/snaptrade-account-prompt.png" />
+<img src="docs/snaptrade-positions.png" />
 
-<img width="1042" height="1126" src="/docs/snaptrade-positions.png" />
+or `snaptrade positions --all` to list all positions across all accounts.
+
+<img src="docs/snaptrade-positions-all.png" />
 
 ---
 
@@ -45,19 +67,36 @@ To submit an equity trade, use `snaptrade trade equity`. It'll prompt you for co
 
 You can pass `--useLastAccount` to skip the account selector and use the previously selected account instead.
 
-<img width="1077" height="789" src="/docs/snaptrade-trade-equity.png" />
+> [!NOTE]
+> A free key does not have access to trading at the moment. Please reach out to sales@snaptrade.com to discuss your trading usecase.
+
+<img src="docs/snaptrade-trade-equity.png" />
 
 ---
 
 To submit a multi-leg option order, use `snaptrade trade option`. It'll prompt you for confirmation before continuing.
 
-<img width="1315" height="824" src="/docs/snaptrade-trade-option.png" />
+<img src="docs/snaptrade-trade-option.png" />
 
 ---
 
-To cancel an order, use `snaptrade cancel-order`. It'll prompt you for confirmation before continuing.
+Once the order is submitted successfully, you have the option to cancel it if it hasn't been filled by the broker. You can find the broker order ID in the response:
 
-<img width="1315" height="824" src="/docs/snaptrade-cancel-order.png" />
+<img src="docs/snaptrade-trade-equity-success.png" />
+
+To submit a cancellation request, use `snaptrade cancel-order`. It'll prompt you for confirmation before continuing.
+
+<img src="docs/snaptrade-cancel-order.png" />
+
+---
+
+To see a list of all your recent orders, including the one you just placed, use `snaptrade orders`.
+
+<img src="docs/snaptrade-orders.png" />
+
+---
+
+This concludes the quick start guide. Check out our [documentation](https://docs.snaptrade.com) for more information.
 
 ## 📚 Commands
 
