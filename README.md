@@ -22,7 +22,7 @@ When you run `snaptrade` for the first time, you need to provide your SnapTrade 
 
 ---
 
-Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the connection portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
+Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
 > [!NOTE]
 > A free key only has access to a limited set of brokers and cannot execute live trades at the moment.
@@ -35,9 +35,12 @@ Once the credentials are set, call `snaptrade connect` to connect a new account.
 
 To see which brokers are supported along with whether trading is enabled, you can run `snaptrade brokers`.
 
+> [!NOTE]
+> To see the latest broker support and capabilities, please refer to this [Notion page](https://snaptrade.notion.site/brokerages).
+
 <img src="docs/snaptrade-brokers.png" />
 
-You can also specify the broker directly with `snaptrade connect --broker <broker slug>` to skip the broker selection step the Connection Portal.
+You can also specify the broker directly with `snaptrade connect --broker <broker slug>` to skip the broker selection step of the Connection Portal.
 
 <img src="docs/snaptrade-connect-broker.png" />
 
@@ -63,7 +66,7 @@ or `snaptrade positions --all` to list all positions across all accounts.
 
 ---
 
-To submit an equity trade, use `snaptrade trade equity`. It'll prompt you for confirmation before continuing.
+To submit an equity order, use `snaptrade trade equity`. It'll prompt you for confirmation before continuing.
 
 You can pass `--useLastAccount` to skip the account selector and use the previously selected account instead.
 
