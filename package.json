@@ -29,9 +29,11 @@
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
-    "snaptrade-typescript-sdk": "^9.0.121"
+    "snaptrade-typescript-sdk": "^9.0.121",
+    "yahoo-finance2": "^3.6.0"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
     "@types/node": "^24.0.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"

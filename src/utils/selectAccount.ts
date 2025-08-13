@@ -81,6 +81,7 @@ export async function selectAccount({
           })
         )}`,
         value: acct.id,
+        short: acct.name ?? acct.institution_name,
         disabled: (() => {
           // If there's no context, all accounts are valid
           if (!context) return false;

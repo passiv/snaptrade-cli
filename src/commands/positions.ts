@@ -1,16 +1,21 @@
 import Table from "cli-table3";
 import { Command } from "commander";
+import type { Ora } from "ora";
+import ora from "ora";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import ora from "ora";
-import type { Ora } from "ora";
+import { yf } from "../utils/yahooFinance.ts";
+import chalk from "chalk";
+
+type AssetClass = "equity" | "option";
 
 type Position = {
   symbol: string;
   quantity: number;
   costBasis?: number;
   currency: string;
+  assetClass: AssetClass;
 };
 
 type AggregatedPosition = {
@@ -19,12 +24,13 @@ type AggregatedPosition = {
   totalCostBasis: number | undefined;
   avgCostBasis: number | undefined;
   currency: string;
+  assetClass: AssetClass;
 };
 
 function aggregatePositions(positions: Position[]): AggregatedPosition[] {
   const map = new Map<
     string,
-    { totalQuantity: number; totalCostBasis?: number }
+    { totalQuantity: number; totalCostBasis?: number; assetClass: AssetClass }
   >();
 
   for (const pos of positions) {
@@ -41,13 +47,17 @@ function aggregatePositions(positions: Position[]): AggregatedPosition[] {
         totalQuantity: pos.quantity,
         totalCostBasis:
           pos.costBasis == null ? undefined : pos.quantity * pos.costBasis,
+        assetClass: pos.assetClass,
       });
     }
   }
 
   // Convert map to array and compute average cost basis
   const result: AggregatedPosition[] = [];
-  for (const [key, { totalQuantity, totalCostBasis }] of map.entries()) {
+  for (const [
+    key,
+    { totalQuantity, totalCostBasis, assetClass },
+  ] of map.entries()) {
     const [symbol, currency] = key.split("|");
     result.push({
       symbol,
@@ -60,6 +70,7 @@ function aggregatePositions(positions: Position[]): AggregatedPosition[] {
             ? totalCostBasis / totalQuantity
             : undefined,
       currency,
+      assetClass,
     });
   }
 
@@ -128,6 +139,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
             quantity: position.units || 0,
             costBasis: position.average_purchase_price ?? undefined,
             currency: position.symbol?.symbol?.currency.code || "USD",
+            assetClass: "equity",
           });
         }
 
@@ -143,6 +155,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
             currency:
               optionPosition.symbol?.option_symbol?.underlying_symbol.currency
                 ?.code || "USD",
+            assetClass: "option",
           });
         }
       }
@@ -151,18 +164,82 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         (a, b) => a.symbol.localeCompare(b.symbol)
       );
 
+      // yahoo finance strips spaces from option OCC symbols
+      const tickers = aggregatedPositions.map((position) =>
+        position.symbol.replaceAll(" ", "")
+      );
+      const quotes: Record<
+        string,
+        { regularMarketPrice: number; currency: string } | undefined
+      > = await yf.quote(
+        tickers,
+        {
+          fields: ["regularMarketPrice", "currency"],
+          return: "object",
+        },
+        {
+          validateResult: false,
+        }
+      );
+
       const table = new Table({
-        head: ["Symbol", "Quantity", "Cost Basis"],
+        head: [
+          "Symbol",
+          "Quantity",
+          "Market Price",
+          "Cost Basis",
+          "Market Value",
+          "PnL",
+        ],
+        colAligns: ["left", "right", "right", "right", "right", "right"],
       });
 
       for (const position of aggregatedPositions) {
+        const currency = position.currency;
+        const quote = quotes[position.symbol.replaceAll(" ", "")];
+        const marketValue = quote?.regularMarketPrice
+          ? quote?.regularMarketPrice *
+            position.totalQuantity *
+            (position.assetClass === "option" ? 100 : 1)
+          : undefined;
+        const pnl =
+          marketValue && position.avgCostBasis
+            ? marketValue -
+              position.avgCostBasis *
+                position.totalQuantity *
+                (position.assetClass === "option" ? 100 : 1)
+            : undefined;
         table.push([
           position.symbol,
           position.totalQuantity,
+          quote?.regularMarketPrice?.toLocaleString("en-US", {
+            style: "currency",
+            currency: quote?.currency,
+          }) || "N/A",
           position.avgCostBasis?.toLocaleString("en-US", {
             style: "currency",
-            currency: position.currency,
+            currency,
           }) || "N/A",
+          marketValue?.toLocaleString("en-US", {
+            style: "currency",
+            currency: quote?.currency,
+          }) ?? "N/A",
+
+          pnl == null
+            ? "N/A"
+            : pnl > 0
+              ? (chalk.green(
+                  pnl.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: quote?.currency,
+                  })
+                ) ?? "N/A")
+              : chalk.red(
+                  pnl.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: quote?.currency,
+                  })
+                ),
         ]);
       }
 
