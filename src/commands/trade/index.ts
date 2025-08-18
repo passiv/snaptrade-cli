@@ -27,7 +27,20 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
     )
     .option("--limitPrice <number>", "Limit price")
     .requiredOption("--action <type>", "Action type: BUY or SELL")
-    .option("--tif <type>", "Time in force: Day or GTC", "Day")
+    .option(
+      "--tif <type>",
+      "Time in force: Day or GTC",
+      (input) => {
+        if (!TIME_IN_FORCE.includes(input as (typeof TIME_IN_FORCE)[number])) {
+          console.error(
+            `Invalid time in force. Allowed values are: ${TIME_IN_FORCE.join(", ")}`
+          );
+          process.exit(1);
+        }
+        return input;
+      },
+      "Day"
+    )
     .option(
       "--replace <string>",
       "Replace an existing order. Provide the broker order ID to replace."
