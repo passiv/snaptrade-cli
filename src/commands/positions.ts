@@ -5,7 +5,7 @@ import ora from "ora";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import { yf } from "../utils/yahooFinance.ts";
+import { getYahooQuotesForSymbols } from "../utils/quotes.ts";
 import chalk from "chalk";
 
 type AssetClass = "equity" | "option";
@@ -164,23 +164,11 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         (a, b) => a.symbol.localeCompare(b.symbol)
       );
 
-      // yahoo finance strips spaces from option OCC symbols
-      const tickers = aggregatedPositions.map((position) =>
-        position.symbol.replaceAll(" ", "")
-      );
-      const quotes: Record<
-        string,
-        { regularMarketPrice: number; currency: string } | undefined
-      > = await yf.quote(
-        tickers,
-        {
-          fields: ["regularMarketPrice", "currency"],
-          return: "object",
-        },
-        {
-          validateResult: false,
-        }
-      );
+      const symbols = aggregatedPositions.map((p) => p.symbol);
+      const quotes = await getYahooQuotesForSymbols(symbols, [
+        "regularMarketPrice",
+        "currency",
+      ]);
 
       const table = new Table({
         head: [
@@ -196,7 +184,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
 
       for (const position of aggregatedPositions) {
         const currency = position.currency;
-        const quote = quotes[position.symbol.replaceAll(" ", "")];
+        const quote = quotes[position.symbol];
         const marketValue = quote?.regularMarketPrice
           ? quote?.regularMarketPrice *
             position.totalQuantity *
