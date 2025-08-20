@@ -26,6 +26,7 @@ import {
   printOrderParams,
 } from "../../../utils/preview.ts";
 import { withDebouncedSpinner } from "../../../utils/withDebouncedSpinner.ts";
+import { getYahooQuotesForSymbols } from "../../../utils/quotes.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option")
@@ -112,6 +113,65 @@ export async function processCommonOptionArgs(
   };
 }
 
+type Amount = {
+  value: number;
+  currency?: string;
+};
+
+type Quote = {
+  bid: number;
+  ask: number;
+  last: number;
+  currency: string;
+};
+
+async function getQuote(ticker: string): Promise<Amount | undefined> {
+  try {
+    const uQuotes = await getYahooQuotesForSymbols(
+      [ticker],
+      ["regularMarketPrice", "currency"]
+    );
+    const uq = uQuotes[ticker];
+    if (uq?.regularMarketPrice && uq.currency) {
+      return {
+        value: uq.regularMarketPrice,
+        currency: uq.currency,
+      };
+    }
+  } catch (_) {}
+}
+
+async function getFullQuote(
+  tickers: string[]
+): Promise<Record<string, Quote | undefined>> {
+  try {
+    const uQuotes = await getYahooQuotesForSymbols(tickers, [
+      "regularMarketPrice",
+      "currency",
+      "bid",
+      "ask",
+    ]);
+    const result: Record<string, Quote> = {};
+    for (const [ticker, data] of Object.entries(uQuotes)) {
+      if (data?.regularMarketPrice && data.currency && data.bid && data.ask) {
+        result[ticker] = {
+          bid: data.bid as number,
+          ask: data.ask as number,
+          last: data.regularMarketPrice,
+          currency: data.currency,
+        };
+      }
+    }
+    return result;
+  } catch (_) {
+    return {};
+  }
+}
+
+function formatAmount(amount: Amount) {
+  return `${amount.value.toLocaleString("en-US", { style: "currency", currency: amount.currency })}`;
+}
+
 export async function confirmTrade(
   account: Account,
   ticker: string,
@@ -122,20 +182,97 @@ export async function confirmTrade(
   tif: string,
   balance?: Balance
 ) {
-  // Pretty preview similar to equity flow
+  // Section: Header
   console.log(chalk.bold("\n📄 Trade Preview\n"));
-  const currency = account.balance.total?.currency;
+
+  // Section: Account selection
   printAccountSection({ account, balance });
   console.log();
-  logLine("📈", "Underlying", ticker);
-  // Render legs in aligned columns; first leg on same line as label
-  const rows = legs.map((leg) => ({
+
+  // Section: Quote for the underlying ticker
+  const underlyingQuote = await getQuote(ticker);
+  logLine(
+    "📈",
+    "Underlying",
+    underlyingQuote ? `${ticker} · ${formatAmount(underlyingQuote)}` : ticker
+  );
+
+  // Section: Overall option strategy quote
+  const occSymbols = legs.map((leg) =>
+    generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type)
+  );
+  const legQuotes = await getFullQuote(occSymbols);
+  const currency = account.balance.total?.currency;
+
+  // Compute combined per-contract strategy Bid/Ask and show it prominently
+  const contracts = Math.max(1, ...legs.map((l) => l.quantity || 0));
+  const perLegForBand = legs.map((leg, idx) => {
+    const q = legQuotes[occSymbols[idx]];
+    const mid =
+      q?.bid != null && q.ask != null ? (q.bid + q.ask) / 2 : undefined;
+    const ratio = Math.max(0, (leg.quantity || contracts) / contracts);
+    const bidUsed = (q?.bid ?? mid ?? q?.last ?? 0) * ratio;
+    const askUsed = (q?.ask ?? mid ?? q?.last ?? 0) * ratio;
+    const stratBid = leg.action === "BUY" ? +bidUsed : -askUsed;
+    const stratAsk = leg.action === "BUY" ? +askUsed : -bidUsed;
+    const currency = q?.currency;
+    const price = (() => {
+      if (mid != null) return leg.action === "BUY" ? -mid : mid;
+      // Fallback: favor conservative side when no mid
+      if (leg.action === "BUY") return -askUsed;
+      return bidUsed;
+    })();
+    return { stratBid, stratAsk, currency, price };
+  });
+  const strategyBid = perLegForBand.reduce((s, l) => s + l.stratBid, 0);
+  const strategyAsk = perLegForBand.reduce((s, l) => s + l.stratAsk, 0);
+  const strategyCurrency = perLegForBand[0]?.currency;
+  // Display mapping: if both are negative (net credit), flip so Bid shows smaller credit (abs of ask), Ask shows larger credit (abs of bid)
+  const bothNegative = strategyBid < 0 && strategyAsk < 0;
+  const displayBid = bothNegative
+    ? Math.abs(strategyAsk)
+    : Math.abs(strategyBid);
+  const displayAsk = bothNegative
+    ? Math.abs(strategyBid)
+    : Math.abs(strategyAsk);
+  const bidLabel = chalk.cyan("Bid");
+  const askLabel = chalk.magenta("Ask");
+  const bidStr = chalk.cyan(
+    formatAmount({
+      value: displayBid,
+      currency: strategyCurrency ?? currency,
+    })
+  );
+  const askStr = chalk.magenta(
+    formatAmount({
+      value: displayAsk,
+      currency: strategyCurrency ?? currency,
+    })
+  );
+  logLine(
+    "💵",
+    "Strategy Quote",
+    `${bidLabel}: ${bidStr} · ${askLabel}: ${askStr}`
+  );
+
+  // Section: Option legs
+  const rows = legs.map((leg, idx) => ({
     action:
       leg.action === "BUY" ? chalk.green(leg.action) : chalk.red(leg.action),
     qty: String(leg.quantity),
     type: leg.type,
-    strike: leg.strike.toLocaleString("en-US", { style: "currency", currency }),
+    strike: formatAmount({ value: leg.strike, currency }),
     exp: leg.expiration,
+    quote: (() => {
+      const q = legQuotes[occSymbols[idx]];
+      if (!q) return "Quote: N/A";
+      // Highlight which side contributes to Strategy Bid (cyan) vs Strategy Ask (magenta)
+      const bidLabel =
+        leg.action === "BUY" ? chalk.cyan("Bid") : chalk.magenta("Bid");
+      const askLabel =
+        leg.action === "BUY" ? chalk.magenta("Ask") : chalk.cyan("Ask");
+      return `${bidLabel}: ${formatAmount({ value: q?.bid, currency: q?.currency })} · ${askLabel}: ${formatAmount({ value: q?.ask, currency: q?.currency })} · Last: ${formatAmount({ value: q?.last, currency: q?.currency })}`;
+    })(),
   }));
   const widths = {
     action: Math.max(...rows.map((r) => r.action.length)),
@@ -143,6 +280,7 @@ export async function confirmTrade(
     type: Math.max(...rows.map((r) => r.type.length)),
     strike: Math.max(...rows.map((r) => r.strike.length)),
     exp: Math.max(...rows.map((r) => r.exp.length)),
+    quote: Math.max(...rows.map((r) => r.quote.length)),
   };
   const makeLine = (r: (typeof rows)[number]) =>
     [
@@ -151,6 +289,7 @@ export async function confirmTrade(
       r.type.padEnd(widths.type),
       r.strike.padStart(widths.strike),
       r.exp.padEnd(widths.exp),
+      r.quote.padEnd(widths.quote),
     ].join("  ");
   if (rows.length > 0) {
     // First leg on the same line as the label
@@ -160,6 +299,8 @@ export async function confirmTrade(
       logLine("  ", "", makeLine(rows[i]));
     }
   }
+
+  // Section: Order Parameters
   printOrderParams({
     action: action as "BUY" | "SELL",
     orderType,
@@ -167,6 +308,27 @@ export async function confirmTrade(
     timeInForce: tif,
     currency,
   });
+
+  // Section: Estimated net debit/credit for the strategy
+  const perContract = Math.abs(
+    perLegForBand.reduce((sum, l) => sum + l.price, 0)
+  );
+  // If user provided a limit for the overall strategy, prefer that per-contract
+  const effectivePerContract =
+    orderType === "Limit" && limitPrice ? Number(limitPrice) : perContract;
+
+  const multiplier = 100;
+  const total = effectivePerContract * multiplier * contracts;
+  logLine(
+    "📊",
+    action === "SELL" ? "Est. Credit" : "Est. Cost",
+    formatAmount({ value: total, currency })
+  );
+  logLine(
+    "  ",
+    "",
+    `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`
+  );
 
   printDivider();
 
