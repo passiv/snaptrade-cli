@@ -19,6 +19,15 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
         useLastAccount: command.parent.opts().useLastAccount,
       });
 
+      // const order =
+      //   await snaptrade.accountInformation.getUserAccountOrderDetail({
+      //     ...user,
+      //     accountId: account.id,
+      //     brokerageOrderId: orderId,
+      //   });
+
+      // console.log("Order details:", order);
+
       const result = await confirm({
         message: "Are you sure you want to cancel this order?",
       });

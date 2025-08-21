@@ -1,12 +1,12 @@
+import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
 import type { Ora } from "ora";
 import ora from "ora";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import { getLastQuotes } from "../utils/quotes.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import { getYahooQuotesForSymbols } from "../utils/quotes.ts";
-import chalk from "chalk";
 
 type AssetClass = "equity" | "option";
 
@@ -165,10 +165,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       );
 
       const symbols = aggregatedPositions.map((p) => p.symbol);
-      const quotes = await getYahooQuotesForSymbols(symbols, [
-        "regularMarketPrice",
-        "currency",
-      ]);
+      const quotes = await getLastQuotes(symbols);
 
       const table = new Table({
         head: [
@@ -185,8 +182,8 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       for (const position of aggregatedPositions) {
         const currency = position.currency;
         const quote = quotes[position.symbol];
-        const marketValue = quote?.regularMarketPrice
-          ? quote?.regularMarketPrice *
+        const marketValue = quote?.last
+          ? quote?.last *
             position.totalQuantity *
             (position.assetClass === "option" ? 100 : 1)
           : undefined;
@@ -200,7 +197,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         table.push([
           position.symbol,
           position.totalQuantity,
-          quote?.regularMarketPrice?.toLocaleString("en-US", {
+          quote?.last?.toLocaleString("en-US", {
             style: "currency",
             currency: quote?.currency,
           }) || "N/A",

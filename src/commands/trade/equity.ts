@@ -1,19 +1,17 @@
 import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import type {
-  Account,
-  Balance,
-  SymbolsQuotesInner,
-} from "snaptrade-typescript-sdk";
+import type { Account, Balance } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import { selectAccount } from "../../utils/selectAccount.ts";
 import {
   logLine,
-  printDivider,
   printAccountSection,
+  printDivider,
   printOrderParams,
 } from "../../utils/preview.ts";
+import { getFullQuote } from "../../utils/quotes.ts";
+import type { Quote } from "../../utils/quotes.ts";
+import { selectAccount } from "../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
@@ -27,7 +25,7 @@ type TradePreviewParams = {
   orderType: string;
   limitPrice?: number;
   timeInForce: string;
-  quote?: SymbolsQuotesInner;
+  quote?: Quote;
   balance: Balance;
 };
 
@@ -47,8 +45,8 @@ function printTradePreview({
     if (quantity !== undefined) {
       if (limitPrice != null) {
         return quantity * limitPrice;
-      } else if (quote?.last_trade_price != null) {
-        return quantity * quote.last_trade_price;
+      } else if (quote?.last != null) {
+        return quantity * quote.last;
       }
     }
   })();
@@ -57,11 +55,8 @@ function printTradePreview({
     if (notional !== undefined) {
       if (limitPrice != null) {
         return notional / limitPrice;
-      } else if (
-        quote?.last_trade_price != null &&
-        quote.last_trade_price !== 0
-      ) {
-        return notional / quote.last_trade_price;
+      } else if (quote?.last != null && quote.last !== 0) {
+        return notional / quote.last;
       }
     }
   })();
@@ -76,19 +71,16 @@ function printTradePreview({
     logLine(
       "💵",
       "Quote",
-      `Bid: ${quote.bid_price?.toLocaleString("en-US", {
+      `Bid: ${quote.bid?.toLocaleString("en-US", {
         style: "currency",
-        currency: quote.symbol?.currency.code,
-      })} x${quote.bid_size} · Ask: ${quote.ask_price?.toLocaleString("en-US", {
+        currency: quote.currency,
+      })} · Ask: ${quote.ask?.toLocaleString("en-US", {
         style: "currency",
-        currency: quote.symbol?.currency.code,
-      })} x${quote.ask_size} · Last: ${quote.last_trade_price?.toLocaleString(
-        "en-US",
-        {
-          style: "currency",
-          currency: quote.symbol?.currency.code,
-        }
-      )}`
+        currency: quote.currency,
+      })} · Last: ${quote.last?.toLocaleString("en-US", {
+        style: "currency",
+        currency: quote.currency,
+      })}`
     );
   }
 
@@ -150,16 +142,11 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         context: "equity_trade",
       });
 
-      const [quoteResponse, balanceResponse] = await withDebouncedSpinner(
+      const [quote, balanceResponse] = await withDebouncedSpinner(
         "Generating trade preview, please wait...",
         async () =>
           Promise.all([
-            snaptrade.trading.getUserAccountQuotes({
-              ...user,
-              accountId: account.id,
-              symbols: ticker,
-              useTicker: true,
-            }),
+            getFullQuote(ticker),
             snaptrade.accountInformation.getUserAccountBalance({
               ...user,
               accountId: account.id,
@@ -177,7 +164,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           }
         )}`,
         ticker,
-        quote: quoteResponse.data[0],
+        quote,
         balance: balanceResponse.data[0], // TODO handle multiple currencies
         action,
         quantity: sharesParsed,
@@ -199,8 +186,6 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         return;
       }
 
-      // TODO Switch to placeSimpleOrder once it's ready
-
       if (!replace) {
         const response = await snaptrade.trading.placeForceOrder({
           ...user,
@@ -220,7 +205,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         const response = await snaptrade.trading.replaceOrder({
           ...user,
           accountId: account.id,
-          brokerageOrderId: replace,
+          brokerage_order_id: replace,
           symbol: ticker,
           action,
           order_type: orderType,

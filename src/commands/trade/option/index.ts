@@ -8,9 +8,22 @@ import type {
 } from "snaptrade-typescript-sdk";
 import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
+import {
+  logLine,
+  printAccountSection,
+  printDivider,
+  printOrderParams,
+} from "../../../utils/preview.ts";
+import {
+  formatAmount,
+  formatLastQuote,
+  getFullQuotes,
+  getLastQuote,
+} from "../../../utils/quotes.ts";
 import { selectAccount } from "../../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../../utils/user.ts";
+import { withDebouncedSpinner } from "../../../utils/withDebouncedSpinner.ts";
 import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
 import { callCommand } from "./call.ts";
 import { ironCondorCommand } from "./iron-condor.ts";
@@ -19,14 +32,6 @@ import { straddleCommand } from "./straddle.ts";
 import { strangleCommand } from "./strangle.ts";
 import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
-import {
-  logLine,
-  printDivider,
-  printAccountSection,
-  printOrderParams,
-} from "../../../utils/preview.ts";
-import { withDebouncedSpinner } from "../../../utils/withDebouncedSpinner.ts";
-import { getYahooQuotesForSymbols } from "../../../utils/quotes.ts";
 
 export function optionCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("option")
@@ -113,65 +118,6 @@ export async function processCommonOptionArgs(
   };
 }
 
-type Amount = {
-  value: number;
-  currency?: string;
-};
-
-type Quote = {
-  bid: number;
-  ask: number;
-  last: number;
-  currency: string;
-};
-
-async function getQuote(ticker: string): Promise<Amount | undefined> {
-  try {
-    const uQuotes = await getYahooQuotesForSymbols(
-      [ticker],
-      ["regularMarketPrice", "currency"]
-    );
-    const uq = uQuotes[ticker];
-    if (uq?.regularMarketPrice && uq.currency) {
-      return {
-        value: uq.regularMarketPrice,
-        currency: uq.currency,
-      };
-    }
-  } catch (_) {}
-}
-
-async function getFullQuote(
-  tickers: string[]
-): Promise<Record<string, Quote | undefined>> {
-  try {
-    const uQuotes = await getYahooQuotesForSymbols(tickers, [
-      "regularMarketPrice",
-      "currency",
-      "bid",
-      "ask",
-    ]);
-    const result: Record<string, Quote> = {};
-    for (const [ticker, data] of Object.entries(uQuotes)) {
-      if (data?.regularMarketPrice && data.currency && data.bid && data.ask) {
-        result[ticker] = {
-          bid: data.bid as number,
-          ask: data.ask as number,
-          last: data.regularMarketPrice,
-          currency: data.currency,
-        };
-      }
-    }
-    return result;
-  } catch (_) {
-    return {};
-  }
-}
-
-function formatAmount(amount: Amount) {
-  return `${amount.value.toLocaleString("en-US", { style: "currency", currency: amount.currency })}`;
-}
-
 export async function confirmTrade(
   account: Account,
   ticker: string,
@@ -190,18 +136,18 @@ export async function confirmTrade(
   console.log();
 
   // Section: Quote for the underlying ticker
-  const underlyingQuote = await getQuote(ticker);
+  const underlyingQuote = await getLastQuote(ticker);
   logLine(
     "📈",
     "Underlying",
-    underlyingQuote ? `${ticker} · ${formatAmount(underlyingQuote)}` : ticker
+    underlyingQuote ? `${ticker} · ${formatLastQuote(underlyingQuote)}` : ticker
   );
 
   // Section: Overall option strategy quote
   const occSymbols = legs.map((leg) =>
     generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type)
   );
-  const legQuotes = await getFullQuote(occSymbols);
+  const legQuotes = await getFullQuotes(occSymbols);
   const currency = account.balance.total?.currency;
 
   // Compute combined per-contract strategy Bid/Ask and show it prominently
