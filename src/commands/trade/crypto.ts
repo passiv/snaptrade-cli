@@ -75,7 +75,7 @@ export function cryptoCommand(snaptrade: Snaptrade): Command {
         }
       })();
 
-      const response = await snaptrade.trading.placeSimpleOrder({
+      const response = await snaptrade.trading.placeCryptoOrder({
         ...user,
         accountId: account.id,
         instrument: {
