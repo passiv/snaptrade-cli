@@ -1,10 +1,9 @@
+import { search } from "@inquirer/prompts";
 import chalk from "chalk";
+import Table from "cli-table3";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { loadOrRegisterUser } from "../utils/user.ts";
-import { search, select } from "@inquirer/prompts";
-import ora from "ora";
-import Table from "cli-table3";
 import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 export function instrumentsCommand(snaptrade: Snaptrade): Command {

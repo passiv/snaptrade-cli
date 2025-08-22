@@ -15,6 +15,7 @@ import { brokersCommand } from "./brokers.ts";
 import { ordersCommand } from "./orders.ts";
 import { instrumentsCommand } from "./instruments.ts";
 import { profilesCommand } from "./profiles.ts";
+import { mcpCommand } from "./mcp.ts";
 
 export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(statusCommand(snaptrade));
@@ -31,5 +32,6 @@ export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(quoteCommand(snaptrade));
   program.addCommand(tradeCommand(snaptrade));
   program.addCommand(cancelOrderCommand(snaptrade));
+  program.addCommand(mcpCommand(snaptrade));
   program.addCommand(profilesCommand());
 }

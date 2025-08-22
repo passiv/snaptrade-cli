@@ -22,6 +22,7 @@
   "repository": "https://github.com/passiv/snaptrade-cli",
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
+    "@modelcontextprotocol/sdk": "^1.17.3",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
@@ -30,7 +31,8 @@
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
     "snaptrade-typescript-sdk": "^9.0.127",
-    "yahoo-finance2": "^3.6.0"
+    "yahoo-finance2": "^3.6.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
