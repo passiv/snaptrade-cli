@@ -109,7 +109,6 @@ export async function getFullQuotes(
       "bid",
       "ask",
     ]);
-    console.log("uQuotes = ", uQuotes);
     const result: Record<string, Quote> = {};
     for (const [ticker, data] of Object.entries(uQuotes)) {
       if (
