@@ -21,6 +21,7 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
       clientId: profile.clientId,
       consumerKey: profile.consumerKey,
       userAgent: `snaptrade-cli/${version}`,
+      basePath: profile.basePath,
     });
   }
 
@@ -68,6 +69,8 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
   const snaptrade = new Snaptrade({
     consumerKey,
     clientId,
+    userAgent: `snaptrade-cli/${version}`,
+    basePath: profile.basePath,
   });
   try {
     await snaptrade.referenceData.getPartnerInfo();

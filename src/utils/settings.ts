@@ -15,6 +15,7 @@ export type ProfileData = {
   userId?: string;
   userSecret?: string;
   lastAccountId?: string;
+  basePath?: string;
 };
 
 export interface Settings {
