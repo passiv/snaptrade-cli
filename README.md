@@ -16,7 +16,7 @@ Then run the CLI:
 snaptrade
 ```
 
-When you run `snaptrade` for the first time, you need to provide your SnapTrade client ID and consumer key
+When you run `snaptrade <command>` for the first time, you need to provide your SnapTrade client ID and consumer key
 
 <img src="docs/snaptrade-start.png" />
 
