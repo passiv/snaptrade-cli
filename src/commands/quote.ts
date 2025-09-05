@@ -96,7 +96,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
             async () => {
               const instrumentsResponse =
                 await snaptrade.referenceData.listAllBrokerageInstruments({
-                  brokerageId: conn.data.brokerage?.id!,
+                  slug: conn.data.brokerage?.slug!,
                 });
               return instrumentsResponse.data.instruments;
             }

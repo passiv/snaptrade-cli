@@ -46,7 +46,7 @@ export function instrumentsCommand(snaptrade: Snaptrade): Command {
         async () => {
           const instrumentsResponse =
             await snaptrade.referenceData.listAllBrokerageInstruments({
-              brokerageId: broker.id!,
+              slug: broker.slug!,
             });
           return instrumentsResponse.data.instruments;
         }
