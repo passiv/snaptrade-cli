@@ -30,7 +30,7 @@
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
-    "snaptrade-typescript-sdk": "^9.0.133",
+    "snaptrade-typescript-sdk": "^9.0.134",
     "yahoo-finance2": "^3.6.0",
     "zod": "^3.25.76"
   },
