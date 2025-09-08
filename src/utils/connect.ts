@@ -8,13 +8,13 @@ export async function handleConnect({
   user,
   existingConnectionId,
   brokerSlug,
-  connectionType = "trade", // default to trade if not specified
+  connectionType = "trade-if-available",
 }: {
   snaptrade: Snaptrade;
   user: User;
   existingConnectionId?: string;
   brokerSlug?: string;
-  connectionType?: "read" | "trade";
+  connectionType?: "read" | "trade-if-available" | "trade";
 }) {
   const loginResponse = await snaptrade.authentication.loginSnapTradeUser({
     ...user,
