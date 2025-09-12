@@ -5,6 +5,7 @@ import type {
   AccountOrderRecord,
   Balance,
 } from "snaptrade-typescript-sdk";
+import type { Leg as OptionLeg } from "../commands/trade/option/index.ts";
 import type { Quote } from "./quotes.ts";
 
 export type PrintableValue =
@@ -217,18 +218,135 @@ export function printOrderDetail(order: AccountOrderRecord) {
   logLine("🆔", "Order ID", order.brokerage_order_id);
   logLine("🕒", "Time Placed", order.time_placed);
   logLine("🏷", "Status", order.status);
-  logLine("📈", "Ticker", symbol);
+
+  const isOption = Boolean(order.option_symbol);
+  if (isOption) {
+    const underlying = order.option_symbol?.underlying_symbol?.symbol || symbol;
+    logLine("📈", "Underlying", underlying);
+  } else {
+    logLine("📈", "Ticker", symbol);
+  }
+
+  // Common order params
   printOrderParams({
     action: order.action as "BUY" | "SELL",
     orderType: order.order_type!,
     limitPrice: Number(order.limit_price) ?? undefined,
-    timeInForce: order.time_in_force || order.tif,
+    timeInForce: (order.time_in_force || (order as any).tif) as string,
     currency,
   });
 
+  // Option legs (single or multi-leg)
+  if (isOption) {
+    // FIXME This will all need to be updated once we properly model multi-leg orders on the backend
+    type RawOrderLeg = {
+      action?: string;
+      side?: string;
+      quantity?: number;
+      units?: number;
+      total_quantity?: number;
+      option_symbol?: { ticker?: string };
+      instrument?: { symbol?: string };
+      occ_symbol?: string;
+      symbol?: string;
+    };
+
+    const rawLegs: RawOrderLeg[] = Array.isArray((order as any).legs)
+      ? ((order as any).legs as RawOrderLeg[])
+      : [];
+
+    const toOptionLeg = (leg: RawOrderLeg): OptionLeg | undefined => {
+      const occ =
+        leg?.option_symbol?.ticker ||
+        leg?.instrument?.symbol ||
+        leg?.occ_symbol ||
+        leg?.symbol ||
+        order.option_symbol?.ticker ||
+        "";
+      const parsed = parseOccLike(String(occ));
+      if (!parsed) return undefined;
+      const actionRaw = (
+        leg?.action ??
+        leg?.side ??
+        order.action ??
+        ""
+      ).toUpperCase();
+      const action =
+        actionRaw === "BUY" || actionRaw === "SELL"
+          ? (actionRaw as OptionLeg["action"])
+          : "BUY";
+      const quantity = Number(
+        leg?.quantity ??
+          leg?.units ??
+          leg?.total_quantity ??
+          order.total_quantity ??
+          1
+      );
+      return {
+        type: parsed.type,
+        action,
+        strike: parsed.strike,
+        expiration: parsed.expiration,
+        quantity,
+      };
+    };
+
+    const legs: OptionLeg[] = (
+      rawLegs.length
+        ? rawLegs.map(toOptionLeg).filter(Boolean)
+        : [
+            toOptionLeg({
+              action: order.action,
+              total_quantity: Number(order.total_quantity),
+              option_symbol: { ticker: order.option_symbol?.ticker },
+            } as RawOrderLeg),
+          ]
+    ).filter(Boolean) as OptionLeg[];
+
+    if (legs.length > 0) {
+      const rows = legs.map((leg) => ({
+        action:
+          leg.action === "BUY"
+            ? chalk.green(leg.action)
+            : chalk.red(leg.action),
+        qty: String(leg.quantity),
+        type: leg.type,
+        strike: Number(leg.strike).toLocaleString("en-US", {
+          style: "currency",
+          currency,
+        }),
+        exp: leg.expiration,
+      }));
+      const widths = {
+        action: Math.max(3, ...rows.map((r) => r.action.length)),
+        qty: Math.max(1, ...rows.map((r) => r.qty.length)),
+        type: Math.max(4, ...rows.map((r) => r.type.length)),
+        strike: Math.max(2, ...rows.map((r) => r.strike.length)),
+        exp: Math.max(8, ...rows.map((r) => r.exp.length)),
+      };
+      const makeLine = (r: (typeof rows)[number]) =>
+        [
+          r.action.padEnd(widths.action),
+          r.qty.padStart(widths.qty),
+          r.type.padEnd(widths.type),
+          r.strike.padStart(widths.strike),
+          r.exp.padEnd(widths.exp),
+        ].join("  ");
+      logLine("🧩", "Legs", makeLine(rows[0]));
+      for (let i = 1; i < rows.length; i++) {
+        logLine("  ", "", makeLine(rows[i]));
+      }
+    }
+  }
+
+  // Fills and execution
   const filled = Number(order.filled_quantity);
   const total = Number(order.total_quantity);
-  logLine("🔢", "Shares", Number(order.total_quantity));
+  logLine(
+    "🔢",
+    isOption ? "Contracts" : "Shares",
+    Number(order.total_quantity)
+  );
   logLine("📦", "Fills", `${filled}/${total} units filled`);
   if (order.execution_price != null) {
     logLine("💳", "Filled Price", {
@@ -238,4 +356,30 @@ export function printOrderDetail(order: AccountOrderRecord) {
   }
 
   printDivider();
+}
+
+// Parse OCC-like symbol (YYMMDD + C/P + 8-digit strike), with or without 6-char underlying prefix
+function parseOccLike(
+  sym: string
+): { type: OptionLeg["type"]; strike: number; expiration: string } | undefined {
+  if (!sym) return undefined;
+  const s = sym.trim();
+  let m = s.match(/^(\d{6})([CP])(\d{8})$/i);
+  if (!m && s.length >= 15) {
+    const trimmed = s.length >= 21 ? s.slice(6) : s;
+    m = trimmed.match(/^(\d{6})([CP])(\d{8})$/i) || (undefined as any);
+  }
+  if (!m) return undefined;
+  const [, yymmdd, cp, strikeRaw] = m;
+  const yy = parseInt(yymmdd.slice(0, 2), 10);
+  const mm = yymmdd.slice(2, 4);
+  const dd = yymmdd.slice(4, 6);
+  const yyyy = yy >= 70 ? 1900 + yy : 2000 + yy;
+  const expiration = `${yyyy}-${mm}-${dd}`;
+  const strike = parseInt(strikeRaw, 10) / 1000;
+  return {
+    type: cp.toUpperCase() === "C" ? "CALL" : "PUT",
+    strike,
+    expiration,
+  };
 }
