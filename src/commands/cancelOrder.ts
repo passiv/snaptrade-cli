@@ -1,6 +1,7 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import { printOrderDetail } from "../utils/preview.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { handlePostTrade } from "../utils/trading.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
@@ -19,14 +20,14 @@ export function cancelOrderCommand(snaptrade: Snaptrade): Command {
         useLastAccount: command.parent.opts().useLastAccount,
       });
 
-      // const order =
-      //   await snaptrade.accountInformation.getUserAccountOrderDetail({
-      //     ...user,
-      //     accountId: account.id,
-      //     brokerageOrderId: orderId,
-      //   });
+      const order =
+        await snaptrade.accountInformation.getUserAccountOrderDetail({
+          ...user,
+          accountId: account.id,
+          brokerage_order_id: orderId,
+        });
 
-      // console.log("Order details:", order);
+      printOrderDetail(order.data);
 
       const result = await confirm({
         message: "Are you sure you want to cancel this order?",

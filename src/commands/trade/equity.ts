@@ -1,113 +1,12 @@
 import { confirm } from "@inquirer/prompts";
-import chalk from "chalk";
 import { Command } from "commander";
-import type { Account, Balance } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
-import {
-  logLine,
-  printAccountSection,
-  printDivider,
-  printOrderParams,
-} from "../../utils/preview.ts";
+import { printTradePreview } from "../../utils/preview.ts";
 import { getFullQuote } from "../../utils/quotes.ts";
-import type { Quote } from "../../utils/quotes.ts";
 import { selectAccount } from "../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
-
-type TradePreviewParams = {
-  account: Account;
-  ticker: string;
-  action: "BUY" | "SELL";
-  quantity?: number;
-  notional?: number;
-  orderType: string;
-  limitPrice?: number;
-  timeInForce: string;
-  quote?: Quote;
-  balance: Balance;
-};
-
-function printTradePreview({
-  account,
-  ticker,
-  quote,
-  balance,
-  action,
-  quantity,
-  notional,
-  orderType,
-  limitPrice,
-  timeInForce,
-}: TradePreviewParams) {
-  const estimatedAmount = (() => {
-    if (quantity !== undefined) {
-      if (limitPrice != null) {
-        return quantity * limitPrice;
-      } else if (quote?.last != null) {
-        return quantity * quote.last;
-      }
-    }
-  })();
-
-  const estimatedQty = (() => {
-    if (notional !== undefined) {
-      if (limitPrice != null) {
-        return notional / limitPrice;
-      } else if (quote?.last != null && quote.last !== 0) {
-        return notional / quote.last;
-      }
-    }
-  })();
-
-  console.log(chalk.bold("\n📄 Trade Preview\n"));
-
-  const currency = account.balance.total?.currency;
-  printAccountSection({ account, balance });
-  console.log();
-  logLine("📈", "Ticker", ticker);
-  if (quote != null) {
-    logLine(
-      "💵",
-      "Quote",
-      `Bid: ${quote.bid?.toLocaleString("en-US", {
-        style: "currency",
-        currency: quote.currency,
-      })} · Ask: ${quote.ask?.toLocaleString("en-US", {
-        style: "currency",
-        currency: quote.currency,
-      })} · Last: ${quote.last?.toLocaleString("en-US", {
-        style: "currency",
-        currency: quote.currency,
-      })}`
-    );
-  }
-
-  printOrderParams({
-    action,
-    orderType,
-    limitPrice,
-    timeInForce,
-    currency,
-  });
-
-  logLine("🔢", "Shares", quantity);
-  logLine("💵", "Dollars", { amount: notional, currency });
-
-  console.log();
-
-  if (quantity != null) {
-    logLine("📊", `Est. ${action === "BUY" ? "Cost  " : "Credit"}`, {
-      amount: estimatedAmount,
-      currency: account.balance.total?.currency,
-    });
-  }
-  if (notional != null) {
-    logLine("📊", "Est. Shares", estimatedQty?.toFixed(4));
-  }
-  printDivider();
-}
 
 export function equityCommand(snaptrade: Snaptrade): Command {
   return new Command("equity")
