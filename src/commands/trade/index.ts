@@ -13,7 +13,7 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
     .requiredOption("--ticker <symbol>", "Underlying asset symbol (e.g., AAPL)")
     .option(
       "--orderType <type>",
-      "Order type: Market or Limit",
+      "Order type: Market, Limit, Stop, StopLimit",
       (input) => {
         if (!ORDER_TYPES.includes(input as (typeof ORDER_TYPES)[number])) {
           console.error(
@@ -26,6 +26,7 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
       "Market"
     )
     .option("--limitPrice <number>", "Limit price")
+    .option("--stopPrice <number>", "Stop price")
     .requiredOption("--action <type>", "Action type: BUY or SELL")
     .option(
       "--tif <type>",
