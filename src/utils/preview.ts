@@ -76,12 +76,14 @@ export function printOrderParams({
   action,
   orderType,
   limitPrice,
+  stopPrice,
   timeInForce,
   currency,
 }: {
   action: "BUY" | "SELL";
   orderType: string;
   limitPrice?: number;
+  stopPrice?: number;
   timeInForce: string;
   currency?: string;
 }) {
@@ -95,6 +97,10 @@ export function printOrderParams({
     amount: limitPrice,
     currency,
   });
+  logLine("🛑", "Stop Price", {
+    amount: stopPrice,
+    currency,
+  });
   logLine("⏳", "Time in Force", timeInForce);
 }
 
@@ -106,6 +112,7 @@ export type TradePreviewParams = {
   notional?: number;
   orderType: string;
   limitPrice?: number;
+  stopPrice?: number;
   timeInForce: string;
   quote?: Quote;
   balance: Balance;
@@ -121,6 +128,7 @@ export function printTradePreview({
   notional,
   orderType,
   limitPrice,
+  stopPrice,
   timeInForce,
 }: TradePreviewParams) {
   const estimatedAmount = (() => {
@@ -170,6 +178,7 @@ export function printTradePreview({
     action,
     orderType,
     limitPrice,
+    stopPrice,
     timeInForce,
     currency,
   });
@@ -232,6 +241,7 @@ export function printOrderDetail(order: AccountOrderRecord) {
     action: order.action as "BUY" | "SELL",
     orderType: order.order_type!,
     limitPrice: Number(order.limit_price) ?? undefined,
+    stopPrice: Number(order.stop_price) ?? undefined,
     timeInForce: (order.time_in_force || (order as any).tif) as string,
     currency,
   });

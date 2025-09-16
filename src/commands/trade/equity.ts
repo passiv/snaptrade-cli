@@ -22,7 +22,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
 
-      const { ticker, orderType, limitPrice, action, tif, replace } =
+      const { ticker, orderType, limitPrice, stopPrice, action, tif, replace } =
         command.parent.opts();
 
       const { shares, notional } = opts;
@@ -34,6 +34,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
       const sharesParsed = parseFloat(shares) || undefined;
       const notionalParsed = parseFloat(notional) || undefined;
       const limitPriceParsed = parseFloat(limitPrice) || undefined;
+      const stopPriceParsed = parseFloat(stopPrice) || undefined;
 
       const account = await selectAccount({
         snaptrade,
@@ -70,6 +71,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         notional: notionalParsed,
         orderType,
         limitPrice: limitPriceParsed,
+        stopPrice: stopPriceParsed,
         timeInForce: tif,
         replace,
       };
@@ -93,6 +95,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           action,
           order_type: orderType,
           price: limitPrice,
+          stop: stopPriceParsed,
           time_in_force: tif,
           units: sharesParsed,
           notional_value: notional,
@@ -109,6 +112,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           action,
           order_type: orderType,
           price: limitPrice,
+          stop: stopPriceParsed,
           time_in_force: tif,
           units: sharesParsed,
           // FIXME This is missing notional value
