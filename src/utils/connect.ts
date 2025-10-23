@@ -37,7 +37,10 @@ export async function handleConnect({
     )
   );
 
-  open(redirectURI);
+  // Add darkMode=true to the URL to enable dark mode in the portal
+  const url = new URL(redirectURI);
+  url.searchParams.set("darkMode", "true");
+  open(url.toString());
 
   const startTime = new Date();
   // Poll connections every 5 seconds until we find the new connection
