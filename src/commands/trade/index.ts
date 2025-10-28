@@ -6,6 +6,7 @@ import { optionCommand } from "./option/index.ts";
 
 export const ORDER_TYPES = ["Market", "Limit", "Stop", "StopLimit"] as const;
 export const TIME_IN_FORCE = ["Day", "GTC"] as const;
+export const TRADING_SESSIONS = ["REGULAR", "EXTENDED"] as const;
 
 export function tradeCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("trade")
@@ -41,6 +42,25 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
         return input;
       },
       "Day"
+    )
+    .option(
+      "--tradingSession <session>",
+      "Trading session to use for the order (REGULAR or EXTENDED)",
+      (input) => {
+        const normalized = input.toUpperCase();
+        if (
+          !TRADING_SESSIONS.includes(
+            normalized as (typeof TRADING_SESSIONS)[number]
+          )
+        ) {
+          console.error(
+            `Invalid trading session. Allowed values are: ${TRADING_SESSIONS.join(", ")}`
+          );
+          process.exit(1);
+        }
+        return normalized;
+      },
+      "REGULAR"
     )
     .option(
       "--replace <string>",

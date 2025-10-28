@@ -7,6 +7,7 @@ import { selectAccount } from "../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
+import { TRADING_SESSIONS } from "./index.ts";
 
 export function equityCommand(snaptrade: Snaptrade): Command {
   return new Command("equity")
@@ -22,8 +23,19 @@ export function equityCommand(snaptrade: Snaptrade): Command {
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
 
-      const { ticker, orderType, limitPrice, stopPrice, action, tif, replace } =
-        command.parent.opts();
+      const {
+        ticker,
+        orderType,
+        limitPrice,
+        stopPrice,
+        action,
+        tif,
+        tradingSession,
+        replace,
+      } = command.parent.opts();
+
+      const tradingSessionValue: (typeof TRADING_SESSIONS)[number] =
+        tradingSession;
 
       const { shares, notional } = opts;
 
@@ -73,6 +85,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
         limitPrice: limitPriceParsed,
         stopPrice: stopPriceParsed,
         timeInForce: tif,
+        tradingSession: tradingSessionValue,
         replace,
       };
 
@@ -99,6 +112,9 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           time_in_force: tif,
           units: sharesParsed,
           notional_value: notional,
+          ...(tradingSessionValue
+            ? { trading_session: tradingSessionValue }
+            : {}),
         });
 
         console.log("✅ Order submitted!");

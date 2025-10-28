@@ -4,6 +4,7 @@ import type {
   Account,
   AccountOrderRecord,
   Balance,
+  TradingSession,
 } from "snaptrade-typescript-sdk";
 import type { Leg as OptionLeg } from "../commands/trade/option/index.ts";
 import type { Quote } from "./quotes.ts";
@@ -116,6 +117,7 @@ export type TradePreviewParams = {
   timeInForce: string;
   quote?: Quote;
   balance: Balance;
+  tradingSession: TradingSession;
 };
 
 export function printTradePreview({
@@ -130,6 +132,7 @@ export function printTradePreview({
   limitPrice,
   stopPrice,
   timeInForce,
+  tradingSession,
 }: TradePreviewParams) {
   const estimatedAmount = (() => {
     if (quantity !== undefined) {
@@ -182,7 +185,7 @@ export function printTradePreview({
     timeInForce,
     currency,
   });
-
+  logLine("🕘", "Session", tradingSession);
   logLine("🔢", "Shares", quantity);
   logLine("💵", "Dollars", { amount: notional, currency });
 
