@@ -14,6 +14,7 @@ const brokers_with_mleg_options = [
   "ALPACA-PAPER",
   "WEALTHSIMPLETRADE",
   "MOOMOO",
+  "TRADESTATION",
 ];
 
 const brokers_with_crypto = ["COINBASE", "BINANCE", "KRAKEN"];
