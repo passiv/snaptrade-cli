@@ -6,6 +6,7 @@ import { optionCommand } from "./option/index.ts";
 
 export const ORDER_TYPES = ["Market", "Limit", "Stop", "StopLimit"] as const;
 export const TIME_IN_FORCE = ["Day", "GTC"] as const;
+export const TRADING_SESSIONS = ["REGULAR", "EXTENDED"] as const;
 
 export function tradeCommand(snaptrade: Snaptrade): Command {
   const cmd = new Command("trade")
@@ -13,7 +14,7 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
     .requiredOption("--ticker <symbol>", "Underlying asset symbol (e.g., AAPL)")
     .option(
       "--orderType <type>",
-      "Order type: Market or Limit",
+      "Order type: Market, Limit, Stop, StopLimit",
       (input) => {
         if (!ORDER_TYPES.includes(input as (typeof ORDER_TYPES)[number])) {
           console.error(
@@ -26,8 +27,41 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
       "Market"
     )
     .option("--limitPrice <number>", "Limit price")
+    .option("--stopPrice <number>", "Stop price")
     .requiredOption("--action <type>", "Action type: BUY or SELL")
-    .option("--tif <type>", "Time in force: Day or GTC", "Day")
+    .option(
+      "--tif <type>",
+      "Time in force: Day or GTC",
+      (input) => {
+        if (!TIME_IN_FORCE.includes(input as (typeof TIME_IN_FORCE)[number])) {
+          console.error(
+            `Invalid time in force. Allowed values are: ${TIME_IN_FORCE.join(", ")}`
+          );
+          process.exit(1);
+        }
+        return input;
+      },
+      "Day"
+    )
+    .option(
+      "--tradingSession <session>",
+      "Trading session to use for the order (REGULAR or EXTENDED)",
+      (input) => {
+        const normalized = input.toUpperCase();
+        if (
+          !TRADING_SESSIONS.includes(
+            normalized as (typeof TRADING_SESSIONS)[number]
+          )
+        ) {
+          console.error(
+            `Invalid trading session. Allowed values are: ${TRADING_SESSIONS.join(", ")}`
+          );
+          process.exit(1);
+        }
+        return normalized;
+      },
+      "REGULAR"
+    )
     .option(
       "--replace <string>",
       "Replace an existing order. Provide the broker order ID to replace."

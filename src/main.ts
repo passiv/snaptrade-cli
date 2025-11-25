@@ -3,19 +3,25 @@ import "./patch-axios.cjs"; // Ensure axios interceptors are set up before any r
 import { input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
+import { readFileSync } from "fs";
+import { dirname, join } from "path";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import { fileURLToPath } from "url";
 import { registerCommands } from "./commands/index.ts";
-import { CONFIG_FILE, getSettings, saveSettings } from "./utils/settings.ts";
+import { CONFIG_FILE, getProfile, saveProfile } from "./utils/settings.ts";
+import { createLazySnapTrade } from "./utils/lazySnapTrade.ts";
 
-async function initializeSnaptrade(): Promise<Snaptrade> {
-  // Load client ID and consumer key from settings
-  const settings = getSettings();
+async function initializeSnaptrade(version: string): Promise<Snaptrade> {
+  // Load client ID and consumer key from the active profile
+  const profile = getProfile();
 
-  if (settings.clientId && settings.consumerKey) {
+  if (profile.clientId && profile.consumerKey) {
     // TODO may want to validate these credentials and reprompt if invalid
     return new Snaptrade({
-      clientId: settings.clientId,
-      consumerKey: settings.consumerKey,
+      clientId: profile.clientId,
+      consumerKey: profile.consumerKey,
+      userAgent: `snaptrade-cli/${version}`,
+      basePath: profile.basePath,
     });
   }
 
@@ -63,11 +69,13 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
   const snaptrade = new Snaptrade({
     consumerKey,
     clientId,
+    userAgent: `snaptrade-cli/${version}`,
+    basePath: profile.basePath,
   });
   try {
     await snaptrade.referenceData.getPartnerInfo();
     // This indicates the credentials are valid
-    saveSettings({
+    saveProfile({
       clientId,
       consumerKey,
     });
@@ -84,13 +92,21 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
   }
 }
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8")
+);
 const program = new Command();
-const snaptrade = await initializeSnaptrade();
+
+const snaptrade = createLazySnapTrade(() =>
+  initializeSnaptrade(packageJson.version)
+);
 
 program
   .name("snaptrade")
   .description("CLI tool to interact with SnapTrade API")
-  .version("0.1.0")
+  .version(packageJson.version)
   .option(
     "--useLastAccount",
     "Use the last selected account for account specific commands",
@@ -101,3 +117,12 @@ program
 registerCommands(program, snaptrade);
 
 program.parse(process.argv);
+
+process.on("uncaughtException", (error) => {
+  if (error instanceof Error && error.name === "ExitPromptError") {
+    console.log("👋 until next time!");
+  } else {
+    // Rethrow unknown errors
+    throw error;
+  }
+});

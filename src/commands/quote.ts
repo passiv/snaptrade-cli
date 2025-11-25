@@ -5,6 +5,8 @@ import { loadOrRegisterUser } from "../utils/user.ts";
 import Table from "cli-table3";
 import { search } from "@inquirer/prompts";
 import assert from "assert";
+import ora from "ora";
+import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
 
@@ -15,7 +17,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
       "[symbols]",
       "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols"
     )
-    .action(async (symbolsArgs, opts, command) => {
+    .action(async (symbolsArgs: string, opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
       const account = await selectAccount({
         snaptrade,
@@ -26,7 +28,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
       if (CRYPTO_BROKERS.includes(account.institution_name)) {
         const symbols = await (async () => {
           if (symbolsArgs) {
-            return (symbolsArgs as string).split(",").map((s) => s.trim());
+            return symbolsArgs.split(",").map((s) => s.trim());
           }
           const response =
             await snaptrade.trading.searchCryptocurrencyPairInstruments({
@@ -77,18 +79,62 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
 
         console.log(table.toString());
       } else {
-        if (!symbolsArgs) {
-          console.error(
-            "Please provide a symbol or a comma-separated list of symbols."
+        const symbols = await (async () => {
+          if (symbolsArgs) {
+            return symbolsArgs;
+          }
+
+          const conn = await snaptrade.connections.detailBrokerageAuthorization(
+            {
+              ...user,
+              authorizationId: account.brokerage_authorization,
+            }
           );
-          // TODO Implement a search prompt for symbols
+
+          const instruments = await withDebouncedSpinner(
+            `Loading all available instruments for ${conn.data.brokerage?.display_name}, this could take a little while...`,
+            async () => {
+              const instrumentsResponse =
+                await snaptrade.referenceData.listAllBrokerageInstruments({
+                  slug: conn.data.brokerage?.slug!,
+                });
+              return instrumentsResponse.data.instruments;
+            }
+          );
+          if (instruments == null || instruments.length === 0) {
+            return undefined;
+          }
+          instruments.sort((a, b) => a.symbol!.localeCompare(b.symbol!));
+
+          const answer = await search({
+            message: "Search for an instrument",
+            source: async (input, { signal }) => {
+              return instruments
+                .filter((instrument) =>
+                  instrument.symbol
+                    ?.toLowerCase()
+                    .includes(input?.toLowerCase() ?? "")
+                )
+                .map((instrument) => ({
+                  name: instrument.symbol,
+                  value: instrument.symbol,
+                }));
+            },
+          });
+          return answer;
+        })();
+
+        if (!symbols) {
+          console.error(
+            "No instruments found. See https://snaptrade.notion.site/66793431ad0b416489eaabaf248d0afb?v=241feaa69a1c80a6b2f9000cdee4883b&source=copy_link for brokers with available instruments."
+          );
           return;
         }
 
         const response = await snaptrade.trading.getUserAccountQuotes({
           ...user,
           accountId: account.id,
-          symbols: symbolsArgs,
+          symbols,
           useTicker: true,
         });
 

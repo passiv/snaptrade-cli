@@ -17,14 +17,14 @@ export function straddleCommand(snaptrade: Snaptrade): Command {
         {
           type: "PUT",
           action: trade.action,
-          strike,
+          strike: Number(strike),
           expiration: exp,
           quantity: trade.quantity,
         },
         {
           type: "CALL",
           action: trade.action,
-          strike,
+          strike: Number(strike),
           expiration: exp,
           quantity: trade.quantity,
         },

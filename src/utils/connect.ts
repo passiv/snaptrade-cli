@@ -8,13 +8,13 @@ export async function handleConnect({
   user,
   existingConnectionId,
   brokerSlug,
-  connectionType = "trade", // default to trade if not specified
+  connectionType = "trade-if-available",
 }: {
   snaptrade: Snaptrade;
   user: User;
   existingConnectionId?: string;
   brokerSlug?: string;
-  connectionType?: "read" | "trade";
+  connectionType?: "read" | "trade-if-available" | "trade";
 }) {
   const loginResponse = await snaptrade.authentication.loginSnapTradeUser({
     ...user,
@@ -37,7 +37,10 @@ export async function handleConnect({
     )
   );
 
-  open(redirectURI);
+  // Add darkMode=true to the URL to enable dark mode in the portal
+  const url = new URL(redirectURI);
+  url.searchParams.set("darkMode", "true");
+  open(url.toString());
 
   const startTime = new Date();
   // Poll connections every 5 seconds until we find the new connection
@@ -61,9 +64,7 @@ export async function handleConnect({
       );
 
       console.log(
-        `To disconnect, run ${chalk.green(
-          `snaptrade disconnect --connectionId ${newOrUpdated.id}`
-        )}.`
+        `To disconnect, run ${chalk.green(`snaptrade disconnect ${newOrUpdated.id}`)}.`
       );
     }
   }, 5000);

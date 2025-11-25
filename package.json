@@ -1,19 +1,42 @@
 {
-  "name": "snaptrade-cli",
+  "name": "@snaptrade/snaptrade-cli",
+  "version": "0.1.31",
   "bin": {
-    "snaptrade": "src/main.ts"
+    "snaptrade": "./bin/snaptrade.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "prebuild": "node scripts/prepare-build.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "postbuild": "cp src/patch-axios.cjs dist/",
+    "release": "rm -rf dist && rm -rf build && npm run build && npm version patch && git push && npm publish"
+  },
+  "repository": "https://github.com/passiv/snaptrade-cli",
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
+    "@modelcontextprotocol/sdk": "^1.17.3",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
+    "date-fns": "^4.1.0",
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
-    "snaptrade-typescript-sdk": "^9.0.118"
+    "snaptrade-typescript-sdk": "^9.0.146",
+    "string-width": "^7.1.0",
+    "yahoo-finance2": "^3.6.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/json-schema": "^7.0.15",
     "@types/node": "^24.0.14",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
