@@ -12,6 +12,7 @@ const brokers_with_mleg_options = [
   "ETRADE",
   "ALPACA",
   "ALPACA-PAPER",
+  "PUBLIC",
   "WEALTHSIMPLETRADE",
   "MOOMOO",
   "TRADESTATION",
