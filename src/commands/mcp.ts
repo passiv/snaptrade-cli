@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { Command } from "commander";
 import type { OptionsPosition, Position } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import * as z from "zod/v4";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function mcpCommand(snaptrade: Snaptrade): Command {
@@ -66,14 +67,21 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
           title: "List all positions",
           description:
             "List all positions across all broker accounts that the user has already configured via the SnapTrade CLI. The result can be used to calculate asset allocation. Equity, option, and crypto positions are supported.",
-          inputSchema: {},
+          inputSchema: {
+            account_id: z.string().optional().describe("Optional account ID to filter positions for a specific account"),
+          },
         },
-        async () => {
+        async (params) => {
           const accounts = (
             await snaptrade.accountInformation.listUserAccounts(user)
           ).data;
+
+          const filteredAccounts = params.account_id
+            ? accounts.filter((account) => account.id === params.account_id)
+            : accounts;
+
           const positionResponse = await Promise.all(
-            accounts.map(
+            filteredAccounts.map(
               async (account) =>
                 await Promise.all([
                   snaptrade.accountInformation.getUserAccountPositions({
