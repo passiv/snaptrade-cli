@@ -64,11 +64,11 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
       server.registerTool(
         "list_positions",
         {
-          title: "List all positions",
+          title: "List positions for an account",
           description:
-            "List all positions across all broker accounts that the user has already configured via the SnapTrade CLI. The result can be used to calculate asset allocation. Equity, option, and crypto positions are supported.",
+            "List all positions for a specific broker account. The result can be used to calculate asset allocation. Equity, option, and crypto positions are supported. Use list_accounts first to get the account ID.",
           inputSchema: {
-            account_id: z.string().optional().describe("Optional account ID to filter positions for a specific account"),
+            account_id: z.string().describe("Account ID to list positions for (required)"),
           },
         },
         async (params) => {
@@ -76,9 +76,7 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
             await snaptrade.accountInformation.listUserAccounts(user)
           ).data;
 
-          const filteredAccounts = params.account_id
-            ? accounts.filter((account) => account.id === params.account_id)
-            : accounts;
+          const filteredAccounts = accounts.filter((account) => account.id === params.account_id);
 
           const positionResponse = await Promise.all(
             filteredAccounts.map(
