@@ -1,4 +1,7 @@
+import chalk from "chalk";
 import { yf } from "./yahooFinance.ts";
+
+const isVerbose = process.argv.includes("--verbose");
 
 type YahooQuote = {
   regularMarketPrice?: number;
@@ -8,11 +11,35 @@ type YahooQuote = {
 };
 
 /**
- * Yahoo Finance treats OCC option symbols without spaces (e.g., AAPL  250118C00100000 -> AAPL250118C00100000).
- * This helper removes spaces to match Yahoo's expected format.
+ * Map broker-reported symbols to their Yahoo Finance equivalents.
+ * Brokers like Fidelity strip special characters (e.g. BRKB instead of BRK-B).
  */
-function sanitizeYahooSymbol(symbol: string): string {
-  return symbol.replaceAll(" ", "");
+const SYMBOL_MAP: Record<string, string> = {
+  BRKB: "BRK-B",
+  BRKA: "BRK-A",
+};
+
+/**
+ * Symbols that cannot be resolved on Yahoo Finance (money market funds, sweep accounts, etc.).
+ * These are silently skipped rather than causing failed lookups.
+ */
+const UNRESOLVABLE_SYMBOLS = new Set([
+  "SPAXX",
+  "FDRXX",
+  "FCASH",
+  "VMFXX",
+  "SWVXX",
+]);
+
+/**
+ * Yahoo Finance treats OCC option symbols without spaces (e.g., AAPL  250118C00100000 -> AAPL250118C00100000).
+ * This helper removes spaces and applies known symbol mappings.
+ * Returns null for symbols that cannot be resolved on Yahoo Finance.
+ */
+function sanitizeYahooSymbol(symbol: string): string | null {
+  const stripped = symbol.replaceAll(" ", "");
+  if (UNRESOLVABLE_SYMBOLS.has(stripped)) return null;
+  return SYMBOL_MAP[stripped] ?? stripped;
 }
 
 /**
@@ -27,11 +54,21 @@ async function getYahooQuotesForSymbols(
 ): Promise<Record<string, YahooQuote | undefined>> {
   if (!symbols.length) return {};
 
-  const sanitized = symbols.map(sanitizeYahooSymbol);
+  // Build mapping from sanitized symbol back to original, filtering out unresolvable symbols
+  const sanitizedToOriginal: Record<string, string> = {};
+  const sanitizedSymbols: string[] = [];
+  for (const sym of symbols) {
+    const sanitized = sanitizeYahooSymbol(sym);
+    if (sanitized === null) continue;
+    sanitizedToOriginal[sanitized] = sym;
+    sanitizedSymbols.push(sanitized);
+  }
+
+  if (!sanitizedSymbols.length) return {};
 
   // yahoo-finance2 can take an array of symbols and return an object map
   const quotes = (await yf.quote(
-    sanitized,
+    sanitizedSymbols,
     {
       fields,
       return: "object",
@@ -44,10 +81,8 @@ async function getYahooQuotesForSymbols(
 
   // Map results back to the original symbols
   const byOriginal: Record<string, YahooQuote | undefined> = {};
-  for (let i = 0; i < symbols.length; i++) {
-    const original = symbols[i];
-    const key = sanitized[i];
-    byOriginal[original] = quotes?.[key];
+  for (const [sanitized, original] of Object.entries(sanitizedToOriginal)) {
+    byOriginal[original] = quotes?.[sanitized];
   }
   return byOriginal;
 }
@@ -89,7 +124,13 @@ export async function getLastQuotes(
       }
     }
     return result;
-  } catch (_) {
+  } catch (error) {
+    if (isVerbose) {
+      console.error(
+        chalk.yellow("Yahoo Finance error (getLastQuotes):"),
+        error
+      );
+    }
     return {};
   }
 }
@@ -126,7 +167,13 @@ export async function getFullQuotes(
       }
     }
     return result;
-  } catch (_) {
+  } catch (error) {
+    if (isVerbose) {
+      console.error(
+        chalk.yellow("Yahoo Finance error (getFullQuotes):"),
+        error
+      );
+    }
     return {};
   }
 }

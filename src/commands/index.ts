@@ -11,6 +11,7 @@ import { recentOrdersCommand } from "./recentOrders.ts";
 import { accountsCommand } from "./accounts.ts";
 import { quoteCommand } from "./quote.ts";
 import { reconnectCommand } from "./reconnect.ts";
+import { refreshCommand } from "./refresh.ts";
 import { brokersCommand } from "./brokers.ts";
 import { ordersCommand } from "./orders.ts";
 import { instrumentsCommand } from "./instruments.ts";
@@ -22,6 +23,7 @@ export function registerCommands(program: Command, snaptrade: Snaptrade): void {
   program.addCommand(brokersCommand(snaptrade));
   program.addCommand(connectCommand(snaptrade));
   program.addCommand(reconnectCommand(snaptrade));
+  program.addCommand(refreshCommand(snaptrade));
   program.addCommand(disconnectCommand(snaptrade));
   program.addCommand(connectionsCommand(snaptrade));
   program.addCommand(accountsCommand(snaptrade));

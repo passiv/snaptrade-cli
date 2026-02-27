@@ -110,6 +110,43 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
         }
       );
 
+      server.registerTool(
+        "refresh_connection",
+        {
+          title: "Refresh a broker connection",
+          description:
+            "Trigger a data refresh for a broker connection. This forces the broker to sync the latest account data (positions, balances, orders, etc.). Use list_connections first to get the connection ID.",
+          inputSchema: {
+            connection_id: z.string().describe("Connection ID to refresh (use list_connections to get the ID)"),
+          },
+        },
+        async (params) => {
+          const response =
+            await snaptrade.connections.refreshBrokerageAuthorization({
+              ...user,
+              authorizationId: params.connection_id,
+            });
+
+          const detail = (response.data as any)?.detail;
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  {
+                    status: "success",
+                    connection_id: params.connection_id,
+                    ...(detail ? { detail } : {}),
+                  },
+                  undefined,
+                  2
+                ),
+              },
+            ],
+          };
+        }
+      );
+
       // Start receiving messages on stdin and sending messages on stdout
       const transport = new StdioServerTransport();
       await server.connect(transport);
