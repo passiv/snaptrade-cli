@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { Command } from "commander";
 import type { OptionsPosition, Position } from "snaptrade-typescript-sdk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import * as z from "zod/v4";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
 export function mcpCommand(snaptrade: Snaptrade): Command {
@@ -63,17 +64,22 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
       server.registerTool(
         "list_positions",
         {
-          title: "List all positions",
+          title: "List positions for an account",
           description:
-            "List all positions across all broker accounts that the user has already configured via the SnapTrade CLI. The result can be used to calculate asset allocation. Equity, option, and crypto positions are supported.",
-          inputSchema: {},
+            "List all positions for a specific broker account. The result can be used to calculate asset allocation. Equity, option, and crypto positions are supported. Use list_accounts first to get the account ID.",
+          inputSchema: {
+            account_id: z.string().describe("Account ID to list positions for (required)"),
+          },
         },
-        async () => {
+        async (params) => {
           const accounts = (
             await snaptrade.accountInformation.listUserAccounts(user)
           ).data;
+
+          const filteredAccounts = accounts.filter((account) => account.id === params.account_id);
+
           const positionResponse = await Promise.all(
-            accounts.map(
+            filteredAccounts.map(
               async (account) =>
                 await Promise.all([
                   snaptrade.accountInformation.getUserAccountPositions({
@@ -100,6 +106,43 @@ export function mcpCommand(snaptrade: Snaptrade): Command {
               type: "text",
               text: JSON.stringify(position, undefined, 2),
             })),
+          };
+        }
+      );
+
+      server.registerTool(
+        "refresh_connection",
+        {
+          title: "Refresh a broker connection",
+          description:
+            "Trigger a data refresh for a broker connection. This forces the broker to sync the latest account data (positions, balances, orders, etc.). Use list_connections first to get the connection ID.",
+          inputSchema: {
+            connection_id: z.string().describe("Connection ID to refresh (use list_connections to get the ID)"),
+          },
+        },
+        async (params) => {
+          const response =
+            await snaptrade.connections.refreshBrokerageAuthorization({
+              ...user,
+              authorizationId: params.connection_id,
+            });
+
+          const detail = (response.data as any)?.detail;
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify(
+                  {
+                    status: "success",
+                    connection_id: params.connection_id,
+                    ...(detail ? { detail } : {}),
+                  },
+                  undefined,
+                  2
+                ),
+              },
+            ],
           };
         }
       );
