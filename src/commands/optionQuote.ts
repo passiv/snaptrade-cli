@@ -8,7 +8,7 @@ import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 export function optionQuoteCommand(snaptrade: Snaptrade): Command {
   return new Command("option-quote")
-    .description("Get a real-time quote for an option contract")
+    .description("Get a quote for an option contract")
     .requiredOption("--ticker <symbol>", "Underlying asset symbol")
     .requiredOption("--exp <date>", "Expiration date (YYYY-MM-DD)")
     .requiredOption("--strike <number>", "Strike price")
