@@ -5,6 +5,7 @@ import type {
   Balance,
   MlegActionStrict,
   MlegInstrumentType,
+  OptionImpact,
 } from "snaptrade-typescript-sdk";
 import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
@@ -126,7 +127,8 @@ export async function confirmTrade(
   orderType: string,
   action: string,
   tif: string,
-  balance?: Balance
+  balance?: Balance,
+  impact?: OptionImpact
 ) {
   // Section: Header
   console.log(chalk.bold("\n📄 Trade Preview\n"));
@@ -276,6 +278,29 @@ export async function confirmTrade(
     `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`
   );
 
+  // Section: Broker-provided impact estimate (if available)
+  if (impact) {
+    console.log();
+    const directionLabel =
+      impact.cash_change_direction === "CREDIT"
+        ? chalk.green("CREDIT")
+        : impact.cash_change_direction === "DEBIT"
+          ? chalk.red("DEBIT")
+          : impact.cash_change_direction ?? "UNKNOWN";
+    logLine(
+      "🏦",
+      "Broker Estimate",
+      `${formatAmount({ value: Number(impact.estimated_cash_change), currency })} ${directionLabel}`
+    );
+    if (impact.estimated_fee_total) {
+      logLine(
+        "  ",
+        "Est. Fees",
+        formatAmount({ value: Number(impact.estimated_fee_total), currency })
+      );
+    }
+  }
+
   printDivider();
 
   const result = await confirm({
@@ -297,17 +322,6 @@ export async function placeTrade(
 
   const { ticker, orderType, limitPrice, action, tif, account, balance } =
     trade;
-
-  await confirmTrade(
-    account,
-    ticker,
-    legs,
-    limitPrice,
-    orderType,
-    action,
-    tif,
-    balance
-  );
 
   const orderTypeInput = (() => {
     switch (orderType as (typeof ORDER_TYPES)[number]) {
@@ -332,6 +346,39 @@ export async function placeTrade(
     action: `${leg.action}_TO_OPEN` as MlegActionStrict,
     units: leg.quantity,
   }));
+
+  // Fetch broker-provided impact estimate (BETA — may not be supported by all brokers)
+  let impact: OptionImpact | undefined;
+  try {
+    const impactResponse = await withDebouncedSpinner(
+      "Fetching order impact estimate...",
+      async () =>
+        snaptrade.trading.getOptionImpact({
+          ...user,
+          accountId: account.id,
+          order_type: orderTypeInput,
+          time_in_force: tif,
+          limit_price: limitPrice,
+          price_effect: action === "BUY" ? "DEBIT" : "CREDIT",
+          legs: legsInput,
+        })
+    );
+    impact = impactResponse.data;
+  } catch {
+    // Silently ignore — this endpoint is not supported by all brokers
+  }
+
+  await confirmTrade(
+    account,
+    ticker,
+    legs,
+    limitPrice,
+    orderType,
+    action,
+    tif,
+    balance,
+    impact
+  );
 
   const response = await snaptrade.trading.placeMlegOrder({
     ...user,
