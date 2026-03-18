@@ -271,23 +271,25 @@ export async function confirmTrade(
 
   // Section: Estimated cost/credit
   if (impact) {
-    // Use broker-provided impact estimate when available
-    const directionLabel =
-      impact.cash_change_direction === "CREDIT"
-        ? chalk.green("CREDIT")
-        : impact.cash_change_direction === "DEBIT"
-          ? chalk.red("DEBIT")
-          : impact.cash_change_direction ?? "UNKNOWN";
+    const estCash = Number(impact.estimated_cash_change);
+    const estFees = Number(impact.estimated_fee_total ?? 0);
+    const isCredit = impact.cash_change_direction === "CREDIT";
     logLine(
       "📊",
-      impact.cash_change_direction === "CREDIT" ? "Est. Credit" : "Est. Cost",
-      `${formatAmount({ value: Number(impact.estimated_cash_change), currency })} ${directionLabel}`
+      isCredit ? "Est. Credit" : "Est. Cost",
+      formatAmount({ value: estCash, currency })
     );
-    if (impact.estimated_fee_total) {
+    if (estFees) {
       logLine(
         "  ",
         "Est. Fees",
-        formatAmount({ value: Number(impact.estimated_fee_total), currency })
+        formatAmount({ value: estFees, currency })
+      );
+      const total = isCredit ? estCash - estFees : estCash + estFees;
+      logLine(
+        "  ",
+        isCredit ? "Net Credit" : "Total Cost",
+        formatAmount({ value: total, currency })
       );
     }
   } else {
