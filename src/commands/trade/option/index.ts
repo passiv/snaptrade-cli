@@ -5,6 +5,7 @@ import type {
   Balance,
   MlegActionStrict,
   MlegInstrumentType,
+  OptionImpact,
 } from "snaptrade-typescript-sdk";
 import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
@@ -16,10 +17,8 @@ import {
 } from "../../../utils/preview.ts";
 import {
   formatAmount,
-  formatLastQuote,
-  getFullQuotes,
-  getLastQuote,
 } from "../../../utils/quotes.ts";
+import type { OptionQuote } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../../utils/user.ts";
@@ -119,6 +118,8 @@ export async function processCommonOptionArgs(
 }
 
 export async function confirmTrade(
+  snaptrade: Snaptrade,
+  user: { userId: string; userSecret: string },
   account: Account,
   ticker: string,
   legs: Leg[],
@@ -126,7 +127,8 @@ export async function confirmTrade(
   orderType: string,
   action: string,
   tif: string,
-  balance?: Balance
+  balance?: Balance,
+  impact?: OptionImpact
 ) {
   // Section: Header
   console.log(chalk.bold("\n📄 Trade Preview\n"));
@@ -135,45 +137,66 @@ export async function confirmTrade(
   printAccountSection({ account, balance });
   console.log();
 
-  // Section: Quote for the underlying ticker
-  const underlyingQuote = await getLastQuote(ticker);
-  logLine(
-    "📈",
-    "Underlying",
-    underlyingQuote ? `${ticker} · ${formatLastQuote(underlyingQuote)}` : ticker
-  );
-
-  // Section: Overall option strategy quote
+  // Section: Fetch option quotes for each leg via SnapTrade API
   const occSymbols = legs.map((leg) =>
     generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type)
   );
-  const legQuotes = await getFullQuotes(occSymbols);
+  const legQuotes: Record<string, OptionQuote | undefined> = {};
+  await Promise.all(
+    occSymbols.map(async (symbol) => {
+      try {
+        const res = await snaptrade.options.getOptionQuote({
+          ...user,
+          accountId: account.id,
+          symbol,
+        });
+        legQuotes[symbol] = res.data;
+      } catch (e: any) {
+        if (process.argv.includes("--verbose")) {
+          console.error(`[option-quote] ${symbol}:`, e?.responseBody ?? e?.response?.data ?? e?.message);
+        }
+        legQuotes[symbol] = undefined;
+      }
+    })
+  );
+
   const currency = account.balance.total?.currency;
 
-  // Compute combined per-contract strategy Bid/Ask and show it prominently
+  // Section: Underlying quote (use underlying_price from first available option quote)
+  const underlyingPrice = Object.values(legQuotes).find(
+    (q) => q?.underlying_price != null
+  )?.underlying_price;
+  logLine(
+    "📈",
+    "Underlying",
+    underlyingPrice
+      ? `${ticker} · ${formatAmount({ value: underlyingPrice, currency })}`
+      : ticker
+  );
+
+  // Section: Overall option strategy quote
   const contracts = Math.max(1, ...legs.map((l) => l.quantity || 0));
   const perLegForBand = legs.map((leg, idx) => {
     const q = legQuotes[occSymbols[idx]];
+    const bid = q?.bid_price;
+    const ask = q?.ask_price;
+    const last = q?.last_price;
     const mid =
-      q?.bid != null && q.ask != null ? (q.bid + q.ask) / 2 : undefined;
+      bid != null && ask != null ? (bid + ask) / 2 : undefined;
     const ratio = Math.max(0, (leg.quantity || contracts) / contracts);
-    const bidUsed = (q?.bid ?? mid ?? q?.last ?? 0) * ratio;
-    const askUsed = (q?.ask ?? mid ?? q?.last ?? 0) * ratio;
+    const bidUsed = (bid ?? mid ?? last ?? 0) * ratio;
+    const askUsed = (ask ?? mid ?? last ?? 0) * ratio;
     const stratBid = leg.action === "BUY" ? +bidUsed : -askUsed;
     const stratAsk = leg.action === "BUY" ? +askUsed : -bidUsed;
-    const currency = q?.currency;
     const price = (() => {
       if (mid != null) return leg.action === "BUY" ? -mid : mid;
-      // Fallback: favor conservative side when no mid
       if (leg.action === "BUY") return -askUsed;
       return bidUsed;
     })();
-    return { stratBid, stratAsk, currency, price };
+    return { stratBid, stratAsk, price };
   });
   const strategyBid = perLegForBand.reduce((s, l) => s + l.stratBid, 0);
   const strategyAsk = perLegForBand.reduce((s, l) => s + l.stratAsk, 0);
-  const strategyCurrency = perLegForBand[0]?.currency;
-  // Display mapping: if both are negative (net credit), flip so Bid shows smaller credit (abs of ask), Ask shows larger credit (abs of bid)
   const bothNegative = strategyBid < 0 && strategyAsk < 0;
   const displayBid = bothNegative
     ? Math.abs(strategyAsk)
@@ -184,16 +207,10 @@ export async function confirmTrade(
   const bidLabel = chalk.cyan("Bid");
   const askLabel = chalk.magenta("Ask");
   const bidStr = chalk.cyan(
-    formatAmount({
-      value: displayBid,
-      currency: strategyCurrency ?? currency,
-    })
+    formatAmount({ value: displayBid, currency })
   );
   const askStr = chalk.magenta(
-    formatAmount({
-      value: displayAsk,
-      currency: strategyCurrency ?? currency,
-    })
+    formatAmount({ value: displayAsk, currency })
   );
   logLine(
     "💵",
@@ -212,12 +229,11 @@ export async function confirmTrade(
     quote: (() => {
       const q = legQuotes[occSymbols[idx]];
       if (!q) return "Quote: N/A";
-      // Highlight which side contributes to Strategy Bid (cyan) vs Strategy Ask (magenta)
       const bidLabel =
         leg.action === "BUY" ? chalk.cyan("Bid") : chalk.magenta("Bid");
       const askLabel =
         leg.action === "BUY" ? chalk.magenta("Ask") : chalk.cyan("Ask");
-      return `${bidLabel}: ${formatAmount({ value: q?.bid, currency: q?.currency })} · ${askLabel}: ${formatAmount({ value: q?.ask, currency: q?.currency })} · Last: ${formatAmount({ value: q?.last, currency: q?.currency })}`;
+      return `${bidLabel}: ${formatAmount({ value: q.bid_price ?? 0, currency })} · ${askLabel}: ${formatAmount({ value: q.ask_price ?? 0, currency })} · Last: ${formatAmount({ value: q.last_price ?? 0, currency })}`;
     })(),
   }));
   const widths = {
@@ -238,9 +254,7 @@ export async function confirmTrade(
       r.quote.padEnd(widths.quote),
     ].join("  ");
   if (rows.length > 0) {
-    // First leg on the same line as the label
     logLine("🧩", "Legs", makeLine(rows[0]));
-    // Subsequent legs aligned under the first leg
     for (let i = 1; i < rows.length; i++) {
       logLine("  ", "", makeLine(rows[i]));
     }
@@ -255,26 +269,49 @@ export async function confirmTrade(
     currency,
   });
 
-  // Section: Estimated net debit/credit for the strategy
-  const perContract = Math.abs(
-    perLegForBand.reduce((sum, l) => sum + l.price, 0)
-  );
-  // If user provided a limit for the overall strategy, prefer that per-contract
-  const effectivePerContract =
-    orderType === "Limit" && limitPrice ? Number(limitPrice) : perContract;
-
-  const multiplier = 100;
-  const total = effectivePerContract * multiplier * contracts;
-  logLine(
-    "📊",
-    action === "SELL" ? "Est. Credit" : "Est. Cost",
-    formatAmount({ value: total, currency })
-  );
-  logLine(
-    "  ",
-    "",
-    `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`
-  );
+  // Section: Estimated cost/credit
+  if (impact) {
+    const estCash = Number(impact.estimated_cash_change);
+    const estFees = Number(impact.estimated_fee_total ?? 0);
+    const isCredit = impact.cash_change_direction === "CREDIT";
+    logLine(
+      "📊",
+      isCredit ? "Est. Credit" : "Est. Cost",
+      formatAmount({ value: estCash, currency })
+    );
+    if (estFees) {
+      logLine(
+        "  ",
+        "Est. Fees",
+        formatAmount({ value: estFees, currency })
+      );
+      const total = isCredit ? estCash - estFees : estCash + estFees;
+      logLine(
+        "  ",
+        isCredit ? "Net Credit" : "Total Cost",
+        formatAmount({ value: total, currency })
+      );
+    }
+  } else {
+    // Fallback: manual estimate from quotes
+    const perContract = Math.abs(
+      perLegForBand.reduce((sum, l) => sum + l.price, 0)
+    );
+    const effectivePerContract =
+      orderType === "Limit" && limitPrice ? Number(limitPrice) : perContract;
+    const multiplier = 100;
+    const total = effectivePerContract * multiplier * contracts;
+    logLine(
+      "📊",
+      action === "SELL" ? "Est. Credit" : "Est. Cost",
+      formatAmount({ value: total, currency })
+    );
+    logLine(
+      "  ",
+      "",
+      `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`
+    );
+  }
 
   printDivider();
 
@@ -297,17 +334,6 @@ export async function placeTrade(
 
   const { ticker, orderType, limitPrice, action, tif, account, balance } =
     trade;
-
-  await confirmTrade(
-    account,
-    ticker,
-    legs,
-    limitPrice,
-    orderType,
-    action,
-    tif,
-    balance
-  );
 
   const orderTypeInput = (() => {
     switch (orderType as (typeof ORDER_TYPES)[number]) {
@@ -332,6 +358,39 @@ export async function placeTrade(
     action: `${leg.action}_TO_OPEN` as MlegActionStrict,
     units: leg.quantity,
   }));
+
+  // Fetch broker-provided impact estimate (BETA — may not be supported by all brokers)
+  let impact: OptionImpact | undefined;
+  try {
+    const impactResponse = await snaptrade.trading.getOptionImpact({
+      ...user,
+      accountId: account.id,
+      order_type: orderTypeInput,
+      time_in_force: tif,
+      limit_price: limitPrice,
+      price_effect: action === "BUY" ? "DEBIT" : "CREDIT",
+      legs: legsInput,
+    });
+    impact = impactResponse.data;
+  } catch (e: any) {
+    if (process.argv.includes("--verbose")) {
+      console.error("[option-impact]:", e?.responseBody ?? e?.response?.data ?? e?.message);
+    }
+  }
+
+  await confirmTrade(
+    snaptrade,
+    user,
+    account,
+    ticker,
+    legs,
+    limitPrice,
+    orderType,
+    action,
+    tif,
+    balance,
+    impact
+  );
 
   const response = await snaptrade.trading.placeMlegOrder({
     ...user,
