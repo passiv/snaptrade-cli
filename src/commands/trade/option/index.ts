@@ -17,6 +17,7 @@ import {
 } from "../../../utils/preview.ts";
 import {
   formatAmount,
+  getLastQuote,
 } from "../../../utils/quotes.ts";
 import type { OptionQuote } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../../utils/selectAccount.ts";
@@ -145,7 +146,7 @@ export async function confirmTrade(
   await Promise.all(
     occSymbols.map(async (symbol) => {
       try {
-        const res = await snaptrade.options.getOptionQuote({
+        const res = await snaptrade.options.getUserAccountOptionQuotes({
           ...user,
           accountId: account.id,
           symbol,
@@ -162,60 +163,32 @@ export async function confirmTrade(
 
   const currency = account.balance.total?.currency;
 
-  // Section: Underlying quote (use underlying_price from first available option quote)
-  const underlyingPrice = Object.values(legQuotes).find(
-    (q) => q?.underlying_price != null
-  )?.underlying_price;
+  // Section: Underlying quote (fetched via Yahoo Finance)
+  const underlyingQuote = await getLastQuote(ticker);
   logLine(
     "📈",
     "Underlying",
-    underlyingPrice
-      ? `${ticker} · ${formatAmount({ value: underlyingPrice, currency })}`
+    underlyingQuote
+      ? `${ticker} · ${formatAmount({ value: underlyingQuote.last, currency: underlyingQuote.currency })}`
       : ticker
   );
 
   // Section: Overall option strategy quote
   const contracts = Math.max(1, ...legs.map((l) => l.quantity || 0));
-  const perLegForBand = legs.map((leg, idx) => {
+  const perLegPricing = legs.map((leg, idx) => {
     const q = legQuotes[occSymbols[idx]];
-    const bid = q?.bid_price;
-    const ask = q?.ask_price;
-    const last = q?.last_price;
-    const mid =
-      bid != null && ask != null ? (bid + ask) / 2 : undefined;
+    const synth = q?.synthetic_price ?? 0;
     const ratio = Math.max(0, (leg.quantity || contracts) / contracts);
-    const bidUsed = (bid ?? mid ?? last ?? 0) * ratio;
-    const askUsed = (ask ?? mid ?? last ?? 0) * ratio;
-    const stratBid = leg.action === "BUY" ? +bidUsed : -askUsed;
-    const stratAsk = leg.action === "BUY" ? +askUsed : -bidUsed;
-    const price = (() => {
-      if (mid != null) return leg.action === "BUY" ? -mid : mid;
-      if (leg.action === "BUY") return -askUsed;
-      return bidUsed;
-    })();
-    return { stratBid, stratAsk, price };
+    // BUY legs cost money (negative), SELL legs earn money (positive)
+    const signedPrice = leg.action === "BUY" ? -synth * ratio : synth * ratio;
+    return { synth, signedPrice };
   });
-  const strategyBid = perLegForBand.reduce((s, l) => s + l.stratBid, 0);
-  const strategyAsk = perLegForBand.reduce((s, l) => s + l.stratAsk, 0);
-  const bothNegative = strategyBid < 0 && strategyAsk < 0;
-  const displayBid = bothNegative
-    ? Math.abs(strategyAsk)
-    : Math.abs(strategyBid);
-  const displayAsk = bothNegative
-    ? Math.abs(strategyBid)
-    : Math.abs(strategyAsk);
-  const bidLabel = chalk.cyan("Bid");
-  const askLabel = chalk.magenta("Ask");
-  const bidStr = chalk.cyan(
-    formatAmount({ value: displayBid, currency })
-  );
-  const askStr = chalk.magenta(
-    formatAmount({ value: displayAsk, currency })
-  );
+  const netPrice = perLegPricing.reduce((s, l) => s + l.signedPrice, 0);
+  const isStrategyCredit = netPrice > 0;
   logLine(
     "💵",
     "Strategy Quote",
-    `${bidLabel}: ${bidStr} · ${askLabel}: ${askStr}`
+    `${isStrategyCredit ? "Credit" : "Debit"}: ${formatAmount({ value: Math.abs(netPrice), currency })}`
   );
 
   // Section: Option legs
@@ -229,11 +202,7 @@ export async function confirmTrade(
     quote: (() => {
       const q = legQuotes[occSymbols[idx]];
       if (!q) return "Quote: N/A";
-      const bidLabel =
-        leg.action === "BUY" ? chalk.cyan("Bid") : chalk.magenta("Bid");
-      const askLabel =
-        leg.action === "BUY" ? chalk.magenta("Ask") : chalk.cyan("Ask");
-      return `${bidLabel}: ${formatAmount({ value: q.bid_price ?? 0, currency })} · ${askLabel}: ${formatAmount({ value: q.ask_price ?? 0, currency })} · Last: ${formatAmount({ value: q.last_price ?? 0, currency })}`;
+      return `Price: ${formatAmount({ value: q.synthetic_price ?? 0, currency })}`;
     })(),
   }));
   const widths = {
@@ -295,7 +264,7 @@ export async function confirmTrade(
   } else {
     // Fallback: manual estimate from quotes
     const perContract = Math.abs(
-      perLegForBand.reduce((sum, l) => sum + l.price, 0)
+      perLegPricing.reduce((sum, l) => sum + l.signedPrice, 0)
     );
     const effectivePerContract =
       orderType === "Limit" && limitPrice ? Number(limitPrice) : perContract;
