@@ -33,18 +33,24 @@
         chalk.gray("Ratelimit Reset:"),
         response.headers["x-ratelimit-reset"],
       );
-      console.log(
-        chalk.gray("Account Ratelimit Total:"),
-        response.headers["x-ratelimit-account-limit"],
-      );
-      console.log(
-        chalk.gray("Account Ratelimit Remaining:"),
-        response.headers["x-ratelimit-account-remaining"],
-      );
-      console.log(
-        chalk.gray("Account Ratelimit Reset:"),
-        response.headers["x-ratelimit-account-reset"],
-      );
+      if (response.headers["x-ratelimit-account-limit"]) {
+        console.log(
+          chalk.gray("Account Ratelimit Total:"),
+          response.headers["x-ratelimit-account-limit"],
+        );
+      }
+      if (response.headers["x-ratelimit-account-remaining"]) {
+        console.log(
+          chalk.gray("Account Ratelimit Remaining:"),
+          response.headers["x-ratelimit-account-remaining"],
+        );
+      }
+      if (response.headers["x-ratelimit-account-reset"]) {
+        console.log(
+          chalk.gray("Account Ratelimit Reset:"),
+          response.headers["x-ratelimit-account-reset"],
+        );
+      }
       console.log(chalk.gray("Latency:"), duration, "ms");
       console.log(
         chalk.gray(
