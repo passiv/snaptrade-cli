@@ -15,22 +15,34 @@
       const duration = Date.now() - response.config.metadata.startTime;
       console.log(
         chalk.gray(
-          "------------------------------------------------------------------------------"
-        )
+          "------------------------------------------------------------------------------",
+        ),
       );
       console.log(chalk.gray("Request URL:"), response.config.url);
       console.log(chalk.gray("Request ID:"), response.headers["x-request-id"]);
       console.log(chalk.gray("Response Status:"), response.status);
+      console.log(
+        chalk.gray("Ratelimit Total:"),
+        response.headers["x-ratelimit-limit"],
+      );
+      console.log(
+        chalk.gray("Ratelimit Remaining:"),
+        response.headers["x-ratelimit-remaining"],
+      );
+      console.log(
+        chalk.gray("Ratelimit Reset:"),
+        response.headers["x-ratelimit-reset"],
+      );
       console.log(chalk.gray("Latency:"), duration, "ms");
       console.log(
         chalk.gray(
-          "------------------------------------------------------------------------------"
-        )
+          "------------------------------------------------------------------------------",
+        ),
       );
       return response;
     },
     (error) => {
       return Promise.reject(error);
-    }
+    },
   );
 })();
