@@ -14,8 +14,10 @@ type Position = {
   symbol: string;
   quantity: number;
   costBasis?: number;
+  brokeragePrice?: number;
   currency: string;
   assetClass: AssetClass;
+  accountName?: string;
 };
 
 type AggregatedPosition = {
@@ -83,6 +85,14 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       "--all",
       "List positions for all accounts. This could be slow if you have many accounts connected."
     )
+    .option(
+      "--symbols-only",
+      "Output only a comma-separated list of unique symbols"
+    )
+    .option(
+      "--per-account",
+      "Do not aggregate across accounts; show one row per account holding"
+    )
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
 
@@ -109,7 +119,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       let completed = 0;
       const results = await Promise.all(
         accounts.map(async (account) => {
-          const result = await Promise.all([
+          const [positions, optionPositions] = await Promise.all([
             snaptrade.accountInformation.getUserAccountPositions({
               ...user,
               accountId: account.id,
@@ -123,7 +133,7 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
           if (spinner) {
             spinner.text = `Loading all positions ... ${completed}/${accounts.length} accounts`;
           }
-          return result;
+          return { account, positions, optionPositions };
         })
       );
 
@@ -132,14 +142,18 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       }
 
       const combinedPositions: Position[] = [];
-      for (const [positions, optionPositions] of results) {
+      for (const { account, positions, optionPositions } of results) {
+        const accountName =
+          account?.name || account?.number || account?.id || "Unknown";
         for (const position of positions.data) {
           combinedPositions.push({
             symbol: position.symbol?.symbol?.symbol || "Unknown",
             quantity: position.units || 0,
             costBasis: position.average_purchase_price ?? undefined,
+            brokeragePrice: position.price ?? undefined,
             currency: position.symbol?.symbol?.currency.code || "USD",
             assetClass: "equity",
+            accountName,
           });
         }
 
@@ -151,11 +165,12 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
             costBasis: optionPosition.average_purchase_price
               ? optionPosition.average_purchase_price! / 100
               : undefined,
-
+            brokeragePrice: optionPosition.price ?? undefined,
             currency:
               optionPosition.symbol?.option_symbol?.underlying_symbol.currency
                 ?.code || "USD",
             assetClass: "option",
+            accountName,
           });
         }
       }
@@ -164,8 +179,102 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
         (a, b) => a.symbol.localeCompare(b.symbol)
       );
 
-      const symbols = aggregatedPositions.map((p) => p.symbol);
+      const symbols = opts.perAccount
+        ? Array.from(new Set(combinedPositions.map((p) => p.symbol)))
+        : aggregatedPositions.map((p) => p.symbol);
+
+      if (opts.symbolsOnly) {
+        console.log(symbols.join(","));
+        return;
+      }
+
       const quotes = await getLastQuotes(symbols);
+
+      // Fall back to the brokerage's last-known price when Yahoo has no quote.
+      // Yahoo is preferred for consistency across accounts, but some tickers
+      // (illiquid, foreign, or non-standard share classes) don't resolve there.
+      for (const position of combinedPositions) {
+        if (!quotes[position.symbol]?.last && position.brokeragePrice != null) {
+          quotes[position.symbol] = {
+            last: position.brokeragePrice,
+            currency: position.currency,
+          };
+        }
+      }
+
+      if (opts.perAccount) {
+        const sorted = [...combinedPositions].sort(
+          (a, b) =>
+            (a.accountName || "").localeCompare(b.accountName || "") ||
+            a.symbol.localeCompare(b.symbol)
+        );
+        const table = new Table({
+          head: [
+            "Account",
+            "Symbol",
+            "Quantity",
+            "Market Price",
+            "Cost Basis",
+            "Market Value",
+            "PnL",
+          ],
+          colAligns: [
+            "left",
+            "left",
+            "right",
+            "right",
+            "right",
+            "right",
+            "right",
+          ],
+        });
+
+        for (const position of sorted) {
+          const currency = position.currency;
+          const quote = quotes[position.symbol];
+          const multiplier = position.assetClass === "option" ? 100 : 1;
+          const marketValue = quote?.last
+            ? quote.last * position.quantity * multiplier
+            : undefined;
+          const pnl =
+            marketValue != null && position.costBasis != null
+              ? marketValue - position.costBasis * position.quantity * multiplier
+              : undefined;
+          table.push([
+            position.accountName || "Unknown",
+            position.symbol,
+            position.quantity,
+            quote?.last?.toLocaleString("en-US", {
+              style: "currency",
+              currency: quote?.currency,
+            }) || "N/A",
+            position.costBasis?.toLocaleString("en-US", {
+              style: "currency",
+              currency,
+            }) || "N/A",
+            marketValue?.toLocaleString("en-US", {
+              style: "currency",
+              currency: quote?.currency,
+            }) ?? "N/A",
+            pnl == null
+              ? "N/A"
+              : (() => {
+                  const formatted = pnl.toLocaleString("en-US", {
+                    style: "currency",
+                    currency: quote?.currency,
+                  });
+                  return pnl > 0
+                    ? chalk.green(formatted)
+                    : pnl < 0
+                      ? chalk.red(formatted)
+                      : formatted;
+                })(),
+          ]);
+        }
+
+        console.log(table.toString());
+        return;
+      }
 
       const table = new Table({
         head: [
@@ -212,19 +321,17 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
 
           pnl == null
             ? "N/A"
-            : pnl > 0
-              ? (chalk.green(
-                  pnl.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: quote?.currency,
-                  })
-                ) ?? "N/A")
-              : chalk.red(
-                  pnl.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: quote?.currency,
-                  })
-                ),
+            : (() => {
+                const formatted = pnl.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: quote?.currency,
+                });
+                return pnl > 0
+                  ? chalk.green(formatted)
+                  : pnl < 0
+                    ? chalk.red(formatted)
+                    : formatted;
+              })(),
         ]);
       }
 
