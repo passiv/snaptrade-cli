@@ -12,7 +12,10 @@ type YahooQuote = {
  * This helper removes spaces to match Yahoo's expected format.
  */
 function sanitizeYahooSymbol(symbol: string): string {
-  return symbol.replaceAll(" ", "");
+  // Yahoo uses "-" for US share-class tickers (BRK-B, BF-B); brokerages
+  // typically emit "BRK.B". Only rewrite when the dot precedes a single
+  // trailing letter, so exchange suffixes like SHOP.TO or TSLA.L stay intact.
+  return symbol.replaceAll(" ", "").replace(/\.([A-Z])$/, "-$1");
 }
 
 /**
