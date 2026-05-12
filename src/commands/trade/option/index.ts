@@ -143,7 +143,7 @@ export async function confirmTrade(
   await Promise.all(
     occSymbols.map(async (symbol) => {
       try {
-        const res = await snaptrade.options.getOptionQuote({
+        const res = await snaptrade.options.getUserAccountOptionQuotes({
           ...user,
           accountId: account.id,
           symbol,
