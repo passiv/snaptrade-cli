@@ -6,7 +6,7 @@ import { getActiveProfileName, getProfile } from "../utils/settings.ts";
 
 export function statusCommand(snaptrade: Snaptrade): Command {
   return new Command("status")
-    .description("Get current status of your SnapTrade API credentials")
+    .description("Get current status of your SnapTrade authentication")
     .action(async () => {
       const user = await loadOrRegisterUser(snaptrade);
       console.log(`Using profile ${chalk.green(getActiveProfileName())}`);

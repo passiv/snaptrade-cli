@@ -16,16 +16,19 @@ Then run the CLI:
 snaptrade
 ```
 
-When you run `snaptrade <command>` for the first time, you need to provide your SnapTrade client ID and consumer key
+When you run `snaptrade <command>` for the first time, the CLI asks how you want to authenticate:
+
+- **Personal SnapTrade account**: sign in with SnapTrade OAuth in your browser. The CLI stores OAuth tokens locally and refreshes them automatically. If your OAuth session is missing or expired, the next compatible command prompts you to sign in again.
+- **Commercial SnapTrade API credentials**: enter your SnapTrade client ID and consumer key. The CLI stores those credentials locally and creates a SnapTrade user when needed.
 
 <img src="docs/snaptrade-start.png" />
 
 ---
 
-Once the credentials are set, call `snaptrade connect` to connect a new account. This will register a new SnapTrade user and open the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
+Once authentication is set, call `snaptrade connect` to connect a new account. For Commercial API-key profiles, this will register a new SnapTrade user if one does not exist yet. For Personal OAuth profiles, the CLI uses your OAuth session. In both cases, the command opens the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
 > [!NOTE]
-> A free key only has access to a limited set of brokers and cannot execute live trades at the moment.
+> Personal OAuth profiles currently support read and connection-management commands. Trading and write operations require Commercial SnapTrade API credentials.
 
 <img src="docs/snaptrade-connect.png" />
 <img src="docs/snaptrade-select.png" />
@@ -43,6 +46,16 @@ To see which brokers are supported along with whether trading is enabled, you ca
 You can also specify the broker directly with `snaptrade connect --broker <broker slug>` to skip the broker selection step of the Connection Portal.
 
 <img src="docs/snaptrade-connect-broker.png" />
+
+---
+
+Use `snaptrade status` to check the active profile. Personal OAuth profiles show the authenticated SnapTrade email. Commercial profiles show the SnapTrade user, client ID, credential status, and trading access.
+
+Profiles are managed with `snaptrade profiles`:
+
+- `snaptrade profiles list` shows each local profile and its authentication mode.
+- `snaptrade profiles use <name>` switches to a profile, creating it locally if needed.
+- `snaptrade profiles delete <name>` deletes a local profile. For Personal OAuth profiles, the CLI attempts to revoke the stored OAuth tokens before removing the profile.
 
 ---
 
@@ -115,7 +128,7 @@ Options:
   -h, --help                 display help for command
 
 Commands:
-  status                     Get current status of your SnapTrade API credentials
+  status                     Get current status of your SnapTrade authentication
   brokers                    List all brokers available to connect
   connect [options]          Establish a new broker connection
   reconnect [connectionId]   Re-establish an existing disabled connection

@@ -22,8 +22,6 @@
   "repository": "https://github.com/passiv/snaptrade-cli",
   "dependencies": {
     "@inquirer/prompts": "^7.6.0",
-    "@modelcontextprotocol/sdk": "^1.17.3",
-    "@snaptrade/snaptrade-cli": "^0.1.33",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.5",
     "commander": "^14.0.0",
