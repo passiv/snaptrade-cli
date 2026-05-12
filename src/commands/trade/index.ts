@@ -3,6 +3,7 @@ import { Snaptrade } from "snaptrade-typescript-sdk";
 import { cryptoCommand } from "./crypto.ts";
 import { equityCommand } from "./equity.ts";
 import { optionCommand } from "./option/index.ts";
+import { assertApiKeyProfileForWrite } from "../../utils/authMode.ts";
 
 export const ORDER_TYPES = ["Market", "Limit", "Stop", "StopLimit"] as const;
 export const TIME_IN_FORCE = ["Day", "GTC"] as const;
@@ -18,13 +19,13 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
       (input) => {
         if (!ORDER_TYPES.includes(input as (typeof ORDER_TYPES)[number])) {
           console.error(
-            `Invalid order type. Allowed values are: ${ORDER_TYPES.join(", ")}`
+            `Invalid order type. Allowed values are: ${ORDER_TYPES.join(", ")}`,
           );
           process.exit(1);
         }
         return input;
       },
-      "Market"
+      "Market",
     )
     .option("--limitPrice <number>", "Limit price")
     .option("--stopPrice <number>", "Stop price")
@@ -35,13 +36,13 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
       (input) => {
         if (!TIME_IN_FORCE.includes(input as (typeof TIME_IN_FORCE)[number])) {
           console.error(
-            `Invalid time in force. Allowed values are: ${TIME_IN_FORCE.join(", ")}`
+            `Invalid time in force. Allowed values are: ${TIME_IN_FORCE.join(", ")}`,
           );
           process.exit(1);
         }
         return input;
       },
-      "Day"
+      "Day",
     )
     .option(
       "--tradingSession <session>",
@@ -50,22 +51,26 @@ export function tradeCommand(snaptrade: Snaptrade): Command {
         const normalized = input.toUpperCase();
         if (
           !TRADING_SESSIONS.includes(
-            normalized as (typeof TRADING_SESSIONS)[number]
+            normalized as (typeof TRADING_SESSIONS)[number],
           )
         ) {
           console.error(
-            `Invalid trading session. Allowed values are: ${TRADING_SESSIONS.join(", ")}`
+            `Invalid trading session. Allowed values are: ${TRADING_SESSIONS.join(", ")}`,
           );
           process.exit(1);
         }
         return normalized;
       },
-      "REGULAR"
+      "REGULAR",
     )
     .option(
       "--replace <string>",
-      "Replace an existing order. Provide the broker order ID to replace."
+      "Replace an existing order. Provide the broker order ID to replace.",
     );
+
+  cmd.hook("preAction", () => {
+    assertApiKeyProfileForWrite("trade");
+  });
 
   cmd.addCommand(equityCommand(snaptrade));
   cmd.addCommand(optionCommand(snaptrade));

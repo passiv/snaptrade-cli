@@ -2,6 +2,8 @@ import os from "os";
 import chalk from "chalk";
 import { Snaptrade, SnaptradeError } from "snaptrade-typescript-sdk";
 import { getActiveProfileName, getProfile, saveProfile } from "./settings.ts";
+import { printSetupIntro, promptAuthMode } from "./authPrompt.ts";
+import { ensureOAuthLogin } from "./oauth.ts";
 
 export type User = {
   userId: string;
@@ -11,6 +13,28 @@ export type User = {
 export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
   const profile = getProfile();
 
+  if (profile.authMode === "oauth") {
+    await ensureOAuthLogin();
+    return {
+      userId: "oauth",
+      userSecret: "oauth",
+    };
+  }
+
+  if (!profile.authMode && !profile.clientId && !profile.consumerKey) {
+    printSetupIntro();
+    const authMode = await promptAuthMode();
+    saveProfile({ authMode });
+
+    if (authMode === "oauth") {
+      await ensureOAuthLogin();
+      return {
+        userId: "oauth",
+        userSecret: "oauth",
+      };
+    }
+  }
+
   if (profile.userId && profile.userSecret) {
     return {
       userId: profile.userId,
@@ -19,7 +43,9 @@ export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
   }
 
   console.log(
-    chalk.yellow("🔐 No user found in settings. Creating new SnapTrade user...")
+    chalk.yellow(
+      "🔐 No user found in settings. Creating new SnapTrade user...",
+    ),
   );
 
   const activeProfile = getActiveProfileName();
@@ -52,8 +78,8 @@ export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
         // Delete the user and recreate it
         console.warn(
           chalk.yellow(
-            "⚠️ User already exists. Deleting and recreating the user..."
-          )
+            "⚠️ User already exists. Deleting and recreating the user...",
+          ),
         );
         await snaptrade.authentication.deleteSnapTradeUser({
           userId,

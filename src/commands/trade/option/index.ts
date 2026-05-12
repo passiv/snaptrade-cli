@@ -15,10 +15,7 @@ import {
   printDivider,
   printOrderParams,
 } from "../../../utils/preview.ts";
-import {
-  formatAmount,
-  getLastQuote,
-} from "../../../utils/quotes.ts";
+import { formatAmount, getLastQuote } from "../../../utils/quotes.ts";
 import type { OptionQuote } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../../utils/trading.ts";
@@ -39,7 +36,7 @@ export function optionCommand(snaptrade: Snaptrade): Command {
     .requiredOption(
       "--contracts <number>",
       "Number of contracts to trade",
-      "1"
+      "1",
     );
 
   cmd.addCommand(callCommand(snaptrade));
@@ -74,7 +71,7 @@ export type TradeArgs = {
 
 export async function processCommonOptionArgs(
   snaptrade: Snaptrade,
-  command: any
+  command: any,
 ): Promise<TradeArgs> {
   const user = await loadOrRegisterUser(snaptrade);
 
@@ -103,7 +100,7 @@ export async function processCommonOptionArgs(
       snaptrade.accountInformation.getUserAccountBalance({
         ...user,
         accountId: selectedAccount.id,
-      })
+      }),
   );
 
   return {
@@ -129,7 +126,7 @@ export async function confirmTrade(
   action: string,
   tif: string,
   balance?: Balance,
-  impact?: OptionImpact
+  impact?: OptionImpact,
 ) {
   // Section: Header
   console.log(chalk.bold("\n📄 Trade Preview\n"));
@@ -140,13 +137,13 @@ export async function confirmTrade(
 
   // Section: Fetch option quotes for each leg via SnapTrade API
   const occSymbols = legs.map((leg) =>
-    generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type)
+    generateOccSymbol(ticker, leg.expiration, leg.strike, leg.type),
   );
   const legQuotes: Record<string, OptionQuote | undefined> = {};
   await Promise.all(
     occSymbols.map(async (symbol) => {
       try {
-        const res = await snaptrade.options.getUserAccountOptionQuotes({
+        const res = await snaptrade.options.getOptionQuote({
           ...user,
           accountId: account.id,
           symbol,
@@ -154,11 +151,14 @@ export async function confirmTrade(
         legQuotes[symbol] = res.data;
       } catch (e: any) {
         if (process.argv.includes("--verbose")) {
-          console.error(`[option-quote] ${symbol}:`, e?.responseBody ?? e?.response?.data ?? e?.message);
+          console.error(
+            `[option-quote] ${symbol}:`,
+            e?.responseBody ?? e?.response?.data ?? e?.message,
+          );
         }
         legQuotes[symbol] = undefined;
       }
-    })
+    }),
   );
 
   const currency = account.balance.total?.currency;
@@ -170,7 +170,7 @@ export async function confirmTrade(
     "Underlying",
     underlyingQuote
       ? `${ticker} · ${formatAmount({ value: underlyingQuote.last, currency: underlyingQuote.currency })}`
-      : ticker
+      : ticker,
   );
 
   // Section: Overall option strategy quote
@@ -188,7 +188,7 @@ export async function confirmTrade(
   logLine(
     "💵",
     "Strategy Quote",
-    `${isStrategyCredit ? "Credit" : "Debit"}: ${formatAmount({ value: Math.abs(netPrice), currency })}`
+    `${isStrategyCredit ? "Credit" : "Debit"}: ${formatAmount({ value: Math.abs(netPrice), currency })}`,
   );
 
   // Section: Option legs
@@ -246,25 +246,21 @@ export async function confirmTrade(
     logLine(
       "📊",
       isCredit ? "Est. Credit" : "Est. Cost",
-      formatAmount({ value: estCash, currency })
+      formatAmount({ value: estCash, currency }),
     );
     if (estFees) {
-      logLine(
-        "  ",
-        "Est. Fees",
-        formatAmount({ value: estFees, currency })
-      );
+      logLine("  ", "Est. Fees", formatAmount({ value: estFees, currency }));
       const total = isCredit ? estCash - estFees : estCash + estFees;
       logLine(
         "  ",
         isCredit ? "Net Credit" : "Total Cost",
-        formatAmount({ value: total, currency })
+        formatAmount({ value: total, currency }),
       );
     }
   } else {
     // Fallback: manual estimate from quotes
     const perContract = Math.abs(
-      perLegPricing.reduce((sum, l) => sum + l.signedPrice, 0)
+      perLegPricing.reduce((sum, l) => sum + l.signedPrice, 0),
     );
     const effectivePerContract =
       orderType === "Limit" && limitPrice ? Number(limitPrice) : perContract;
@@ -273,12 +269,12 @@ export async function confirmTrade(
     logLine(
       "📊",
       action === "SELL" ? "Est. Credit" : "Est. Cost",
-      formatAmount({ value: total, currency })
+      formatAmount({ value: total, currency }),
     );
     logLine(
       "  ",
       "",
-      `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`
+      `${formatAmount({ value: effectivePerContract, currency })} × ${multiplier} multiplier × ${contracts} contract${contracts > 1 ? "s" : ""}`,
     );
   }
 
@@ -297,7 +293,7 @@ export async function confirmTrade(
 export async function placeTrade(
   snaptrade: Snaptrade,
   legs: Leg[],
-  trade: TradeArgs
+  trade: TradeArgs,
 ) {
   const user = await loadOrRegisterUser(snaptrade);
 
@@ -343,7 +339,10 @@ export async function placeTrade(
     impact = impactResponse.data;
   } catch (e: any) {
     if (process.argv.includes("--verbose")) {
-      console.error("[option-impact]:", e?.responseBody ?? e?.response?.data ?? e?.message);
+      console.error(
+        "[option-impact]:",
+        e?.responseBody ?? e?.response?.data ?? e?.message,
+      );
     }
   }
 
@@ -358,7 +357,7 @@ export async function placeTrade(
     action,
     tif,
     balance,
-    impact
+    impact,
   );
 
   const response = await snaptrade.trading.placeMlegOrder({

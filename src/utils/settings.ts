@@ -8,9 +8,17 @@ const CONFIG_DIR = path.join(CONFIG_ROOT, "snaptrade");
 export const CONFIG_FILE = path.join(CONFIG_DIR, "settings.json");
 
 export type ProfileData = {
+  authMode?: "oauth" | "apiKey";
   // Per-profile API credentials
   clientId?: string;
   consumerKey?: string;
+  // Personal OAuth credentials
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  oauthExpiresAt?: string;
+  oauthScope?: string;
+  oauthSubject?: string;
+  oauthEmail?: string;
   // Per-profile user and local prefs
   userId?: string;
   userSecret?: string;
@@ -73,6 +81,18 @@ export function saveProfile(updates: Partial<ProfileData>): void {
   const profileName = getActiveProfileName();
   const existing = profiles[profileName] || {};
   profiles[profileName] = { ...existing, ...updates };
+  saveSettings({ profiles });
+}
+
+export function clearProfileFields(fields: Array<keyof ProfileData>): void {
+  const settings = getSettings();
+  const profiles = { ...(settings.profiles || {}) };
+  const profileName = getActiveProfileName();
+  const existing = { ...(profiles[profileName] || {}) };
+  for (const field of fields) {
+    delete existing[field];
+  }
+  profiles[profileName] = existing;
   saveSettings({ profiles });
 }
 

@@ -8,12 +8,27 @@ import { dirname, join } from "path";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { fileURLToPath } from "url";
 import { registerCommands } from "./commands/index.ts";
-import { CONFIG_FILE, getProfile, saveProfile } from "./utils/settings.ts";
+import { getProfile, saveProfile } from "./utils/settings.ts";
 import { createLazySnapTrade } from "./utils/lazySnapTrade.ts";
+import {
+  ensureOAuthLogin,
+  OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+} from "./utils/oauth.ts";
+import { printSetupIntro, promptAuthMode } from "./utils/authPrompt.ts";
 
 async function initializeSnaptrade(version: string): Promise<Snaptrade> {
   // Load client ID and consumer key from the active profile
   const profile = getProfile();
+
+  if (profile.authMode === "oauth") {
+    await ensureOAuthLogin();
+    return new Snaptrade({
+      clientId: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      consumerKey: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      userAgent: `snaptrade-cli/${version}`,
+      basePath: profile.basePath,
+    });
+  }
 
   if (profile.clientId && profile.consumerKey) {
     // TODO may want to validate these credentials and reprompt if invalid
@@ -25,33 +40,20 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
     });
   }
 
-  console.log(
-    chalk.yellow(`
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                   │
-│                                                                                   │
-│    ███████╗███╗   ██╗ █████╗ ██████╗ ████████╗██████╗  █████╗ ██████╗ ███████╗    │
-│    ██╔════╝████╗  ██║██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██╔════╝    │
-│    ███████╗██╔██╗ ██║███████║██████╔╝   ██║   ██████╔╝███████║██║  ██║█████╗      │
-│    ╚════██║██║╚██╗██║██╔══██║██╔═══╝    ██║   ██╔══██╗██╔══██║██║  ██║██╔══╝      │
-│    ███████║██║ ╚████║██║  ██║██║        ██║   ██║  ██║██║  ██║██████╔╝███████╗    │
-│                                                                                   │
-│                    SnapTrade CLI ─ Connect • Trade • Automate                     │
-│                                                                                   │
-└───────────────────────────────────────────────────────────────────────────────────┘
-`)
-  );
+  printSetupIntro();
 
-  console.log(
-    chalk.cyan(`To use the SnapTrade CLI, you'll need your SnapTrade API credentials.
+  const authMode = profile.authMode || (await promptAuthMode());
 
-You can get started for free at https://dashboard.snaptrade.com/signup.
-
-Your client ID and consumer key will be provided after you create an account. Enter them below to continue.
-
-These will be saved securely in your local config file (${CONFIG_FILE}).
-`)
-  );
+  if (authMode === "oauth") {
+    saveProfile({ authMode: "oauth" });
+    await ensureOAuthLogin();
+    return new Snaptrade({
+      clientId: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      consumerKey: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      userAgent: `snaptrade-cli/${version}`,
+      basePath: profile.basePath,
+    });
+  }
 
   // Prompt the user to enter their SnapTrade client ID and consumer key with inquirer
   const clientId = await input({
@@ -76,17 +78,18 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
     await snaptrade.referenceData.getPartnerInfo();
     // This indicates the credentials are valid
     saveProfile({
+      authMode: "apiKey",
       clientId,
       consumerKey,
     });
 
     console.log(
-      chalk.green("✅ Your SnapTrade credentials have been saved.\n")
+      chalk.green("✅ Your SnapTrade credentials have been saved.\n"),
     );
     return snaptrade;
   } catch (error) {
     console.error(
-      "❌ The client ID or consumer key you provided doesn't seem to be valid. Please try again."
+      "❌ The client ID or consumer key you provided doesn't seem to be valid. Please try again.",
     );
     process.exit(1);
   }
@@ -95,12 +98,12 @@ These will be saved securely in your local config file (${CONFIG_FILE}).
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageJson = JSON.parse(
-  readFileSync(join(__dirname, "..", "package.json"), "utf-8")
+  readFileSync(join(__dirname, "..", "package.json"), "utf-8"),
 );
 const program = new Command();
 
 const snaptrade = createLazySnapTrade(() =>
-  initializeSnaptrade(packageJson.version)
+  initializeSnaptrade(packageJson.version),
 );
 
 program
@@ -110,7 +113,7 @@ program
   .option(
     "--useLastAccount",
     "Use the last selected account for account specific commands",
-    false
+    false,
   )
   .option("--verbose", "Enable verbose output", false);
 

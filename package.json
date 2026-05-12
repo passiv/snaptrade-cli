@@ -16,7 +16,7 @@
   "scripts": {
     "prebuild": "node scripts/prepare-build.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "cp src/patch-axios.cjs dist/",
+    "postbuild": "cp src/patch-axios.cjs dist/ && mkdir -p dist/utils && cp src/utils/oauthConstants.cjs dist/utils/",
     "release": "rm -rf dist && rm -rf build && npm run build && npm version patch && git push && npm publish"
   },
   "repository": "https://github.com/passiv/snaptrade-cli",
