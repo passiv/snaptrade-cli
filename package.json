@@ -16,7 +16,7 @@
   "scripts": {
     "prebuild": "node scripts/prepare-build.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "cp src/patch-axios.cjs dist/ && mkdir -p dist/utils && cp src/utils/oauthConstants.cjs dist/utils/",
+    "postbuild": "mkdir -p dist/utils && cp src/utils/oauthConstants.cjs dist/utils/",
     "release": "rm -rf dist && rm -rf build && npm run build && npm version patch && git push && npm publish"
   },
   "repository": "https://github.com/passiv/snaptrade-cli",
@@ -29,7 +29,7 @@
     "open": "^10.2.0",
     "ora": "^8.2.0",
     "prettier": "^3.6.2",
-    "snaptrade-typescript-sdk": "^9.0.178",
+    "snaptrade-typescript-sdk": "^10.0.3",
     "string-width": "^7.1.0",
     "yahoo-finance2": "^3.6.0",
     "zod": "^3.25.76"

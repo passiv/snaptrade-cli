@@ -15,7 +15,7 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
 
       if (connections.length === 0) {
         console.log(
-          `No connections found. Connect an account with ${chalk.green(`snaptrade connect`)}.`
+          `No connections found. Connect an account with ${chalk.green(`snaptrade connect`)}.`,
         );
         return;
       }
@@ -27,7 +27,7 @@ export function connectionsCommand(snaptrade: Snaptrade): Command {
       for (const conn of connections) {
         table.push([
           conn.id,
-          conn.brokerage!.name,
+          conn.brokerage!.display_name,
           conn.disabled ? "❌ Disabled" : "✅ Active",
           conn.type === "read" ? "read-only" : "trade",
           new Date(conn.created_date!).toLocaleDateString(),

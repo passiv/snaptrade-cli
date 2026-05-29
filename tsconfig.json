@@ -2,10 +2,13 @@
   "compilerOptions": {
     "strict": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "target": "ESNext",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "allowSyntheticDefaultImports": true
-  }
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src"]
 }

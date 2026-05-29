@@ -4,6 +4,7 @@ import Table from "cli-table3";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import chalk from "chalk";
 import { formatDistanceToNow } from "date-fns";
+import { listAccountsByConnection } from "../utils/accounts.ts";
 
 export function accountsCommand(snaptrade: Snaptrade): Command {
   return new Command("accounts")
@@ -11,12 +12,12 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
     .action(async () => {
       const user = await loadOrRegisterUser(snaptrade);
       const accounts = (
-        await snaptrade.accountInformation.listUserAccounts(user)
-      ).data;
+        await listAccountsByConnection(snaptrade, user)
+      ).flatMap(({ accounts }) => accounts);
 
       if (accounts.length === 0) {
         console.log(
-          `No accounts found. Connect an account with ${chalk.green(`snaptrade connect`)}.`
+          `No accounts found. Connect an account with ${chalk.green(`snaptrade connect`)}.`,
         );
         return;
       }
@@ -58,7 +59,7 @@ export function accountsCommand(snaptrade: Snaptrade): Command {
                 account.sync_status.holdings.last_successful_sync,
                 {
                   addSuffix: true,
-                }
+                },
               )
             : "N/A",
         ]);

@@ -2,6 +2,7 @@ import { Separator } from "@inquirer/core";
 import { select } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Snaptrade } from "snaptrade-typescript-sdk";
+import { listAccountsByConnection } from "./accounts.ts";
 import { getProfile, saveProfile } from "./settings.ts";
 import { loadOrRegisterUser } from "./user.ts";
 
@@ -51,28 +52,11 @@ export async function selectAccount({
     }
   }
 
-  const accounts = (await snaptrade.accountInformation.listUserAccounts(user))
-    .data;
+  const accountsByConnection = await listAccountsByConnection(snaptrade, user);
+  const accounts = accountsByConnection.flatMap(({ accounts }) => accounts);
 
-  // Group accounts by connection so we can display them under their respective brokerages
-  const accountsByConnection = accounts.reduce(
-    (acc, acct) => {
-      if (!acc[acct.brokerage_authorization]) {
-        acc[acct.brokerage_authorization] = [];
-      }
-      acc[acct.brokerage_authorization].push(acct);
-      return acc;
-    },
-    {} as Record<string, typeof accounts>
-  );
-
-  const connections = (
-    await snaptrade.connections.listBrokerageAuthorizations(user)
-  ).data;
-
-  const choices = connections.flatMap((connection) => {
-    const accounts = accountsByConnection[connection.id!];
-    if (!accounts || accounts.length === 0) {
+  const choices = accountsByConnection.flatMap(({ connection, accounts }) => {
+    if (accounts.length === 0) {
       return []; // Skip if no accounts for this connection
     }
     return [
@@ -82,7 +66,7 @@ export async function selectAccount({
           acct.balance.total?.amount?.toLocaleString("en-US", {
             style: "currency",
             currency: acct.balance.total.currency,
-          })
+          }),
         )}`,
         value: acct.id,
         short: acct.name ?? acct.institution_name,
@@ -116,11 +100,12 @@ export async function selectAccount({
   if (
     choices.every(
       (choice) =>
-        choice instanceof Separator || ("disabled" in choice && choice.disabled)
+        choice instanceof Separator ||
+        ("disabled" in choice && choice.disabled),
     )
   ) {
     console.error(
-      `No valid accounts available. Connect an account with ${chalk.green(`snaptrade connect`)} or fix your disabled connections with ${chalk.green(`snaptrade reconnect`)}.`
+      `No valid accounts available. Connect an account with ${chalk.green(`snaptrade connect`)} or fix your disabled connections with ${chalk.green(`snaptrade reconnect`)}.`,
     );
     process.exit(1);
   }

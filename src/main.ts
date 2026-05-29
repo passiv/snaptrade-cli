@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import "./patch-axios.cjs"; // Ensure axios interceptors are set up before any requests
 import { input, password } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
@@ -15,6 +14,9 @@ import {
   OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
 } from "./utils/oauth.ts";
 import { printSetupIntro, promptAuthMode } from "./utils/authPrompt.ts";
+import { installAxiosPatch } from "./utils/axios.ts";
+
+installAxiosPatch();
 
 async function initializeSnaptrade(version: string): Promise<Snaptrade> {
   // Load client ID and consumer key from the active profile
