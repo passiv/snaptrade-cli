@@ -279,6 +279,7 @@ export async function loginWithOAuth(): Promise<void> {
   );
 
   saveProfile({
+    accountType: "personal",
     authMode: "oauth",
     oauthAccessToken: token.access_token,
     oauthRefreshToken: token.refresh_token,
@@ -298,7 +299,9 @@ export async function revokeOAuthTokensForProfile(
 
   const metadata = await getOAuthMetadata(profile);
   if (!metadata.revocation_endpoint) {
-    throw new Error("SnapTrade OAuth metadata did not include a revocation endpoint.");
+    throw new Error(
+      "SnapTrade OAuth metadata did not include a revocation endpoint.",
+    );
   }
 
   if (profile.oauthRefreshToken) {
@@ -346,6 +349,7 @@ export async function refreshOAuthToken(force = false): Promise<string | null> {
   );
 
   saveProfile({
+    accountType: "personal",
     authMode: "oauth",
     oauthAccessToken: token.access_token,
     oauthRefreshToken: token.refresh_token ?? profile.oauthRefreshToken,

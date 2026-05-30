@@ -9,6 +9,7 @@ export const CONFIG_FILE = path.join(CONFIG_DIR, "settings.json");
 
 export type ProfileData = {
   authMode?: "oauth" | "apiKey";
+  accountType?: "personal" | "commercial";
   // Per-profile API credentials
   clientId?: string;
   consumerKey?: string;

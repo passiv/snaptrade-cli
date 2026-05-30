@@ -21,16 +21,30 @@ export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
     };
   }
 
+  if (profile.authMode === "apiKey" && profile.accountType === "personal") {
+    return {
+      userId: "personal",
+      userSecret: "personal",
+    };
+  }
+
   if (!profile.authMode && !profile.clientId && !profile.consumerKey) {
     printSetupIntro();
-    const authMode = await promptAuthMode();
-    saveProfile({ authMode });
+    const authChoice = await promptAuthMode();
+    saveProfile(authChoice);
 
-    if (authMode === "oauth") {
+    if (authChoice.authMode === "oauth") {
       await ensureOAuthLogin();
       return {
         userId: "oauth",
         userSecret: "oauth",
+      };
+    }
+
+    if (authChoice.accountType === "personal") {
+      return {
+        userId: "personal",
+        userSecret: "personal",
       };
     }
   }

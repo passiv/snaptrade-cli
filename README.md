@@ -18,14 +18,14 @@ snaptrade
 
 When you run `snaptrade <command>` for the first time, the CLI asks how you want to authenticate:
 
-- **Personal SnapTrade account**: sign in with SnapTrade OAuth in your browser. The CLI stores OAuth tokens locally and refreshes them automatically. If your OAuth session is missing or expired, the next compatible command prompts you to sign in again.
-- **Commercial SnapTrade API credentials**: enter your SnapTrade client ID and consumer key. The CLI stores those credentials locally and creates a SnapTrade user when needed.
+- **Personal SnapTrade account**: sign in with SnapTrade OAuth in your browser, or enter your SnapTrade client ID and consumer key. OAuth profiles store refreshable browser tokens locally. Personal client ID and consumer key profiles store only those credentials; the CLI does not register or save a SnapTrade user for them.
+- **Commercial SnapTrade account**: enter your SnapTrade client ID and consumer key. The CLI stores those credentials locally and creates a SnapTrade user when needed.
 
 <img src="docs/snaptrade-start.png" />
 
 ---
 
-Once authentication is set, call `snaptrade connect` to connect a new account. For Commercial API-key profiles, this will register a new SnapTrade user if one does not exist yet. For Personal OAuth profiles, the CLI uses your OAuth session. In both cases, the command opens the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
+Once authentication is set, call `snaptrade connect` to connect a new account. For Commercial client ID and consumer key profiles, this will register a new SnapTrade user if one does not exist yet. For Personal OAuth and Personal client ID and consumer key profiles, the CLI uses the authenticated Personal user implicitly. In all cases, the command opens the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
 > [!NOTE]
 > Personal OAuth profiles currently support read and connection-management commands. Trading and write operations require Commercial SnapTrade API credentials.
@@ -49,7 +49,7 @@ You can also specify the broker directly with `snaptrade connect --broker <broke
 
 ---
 
-Use `snaptrade status` to check the active profile. Personal OAuth profiles show the authenticated SnapTrade email. Commercial profiles show the SnapTrade user, client ID, credential status, and trading access.
+Use `snaptrade status` to check the active profile. Personal OAuth profiles show the authenticated SnapTrade email. Personal client ID and consumer key profiles show the client ID and credential status. Commercial profiles show the SnapTrade user, client ID, credential status, and trading access.
 
 Profiles are managed with `snaptrade profiles`:
 

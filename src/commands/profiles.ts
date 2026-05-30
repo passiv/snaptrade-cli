@@ -28,9 +28,17 @@ export function profilesCommand(): Command {
       for (const name of names) {
         const mark = name === active ? chalk.green("*") : " ";
         const profile = getProfile(name);
-        const authMode =
-          profile.authMode ||
-          (profile.clientId && profile.consumerKey ? "apiKey" : "unset");
+        const authMode = (() => {
+          if (profile.authMode === "oauth") return "personal oauth";
+          if (
+            profile.authMode === "apiKey" &&
+            profile.accountType === "personal"
+          ) {
+            return "personal apiKey";
+          }
+          if (profile.authMode === "apiKey") return "commercial apiKey";
+          return profile.clientId && profile.consumerKey ? "apiKey" : "unset";
+        })();
         console.log(`${mark} ${name} ${chalk.gray(`(${authMode})`)}`);
       }
     });

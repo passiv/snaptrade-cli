@@ -7,7 +7,11 @@ import { dirname, join } from "path";
 import { Snaptrade } from "snaptrade-typescript-sdk";
 import { fileURLToPath } from "url";
 import { registerCommands } from "./commands/index.ts";
-import { getProfile, saveProfile } from "./utils/settings.ts";
+import {
+  clearProfileFields,
+  getProfile,
+  saveProfile,
+} from "./utils/settings.ts";
 import { createLazySnapTrade } from "./utils/lazySnapTrade.ts";
 import {
   ensureOAuthLogin,
@@ -33,6 +37,13 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
   }
 
   if (profile.clientId && profile.consumerKey) {
+    if (
+      profile.authMode === "apiKey" &&
+      profile.accountType === "personal" &&
+      (profile.userId || profile.userSecret)
+    ) {
+      clearProfileFields(["userId", "userSecret"]);
+    }
     // TODO may want to validate these credentials and reprompt if invalid
     return new Snaptrade({
       clientId: profile.clientId,
@@ -44,10 +55,17 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
 
   printSetupIntro();
 
-  const authMode = profile.authMode || (await promptAuthMode());
+  const authChoice =
+    profile.authMode === "apiKey"
+      ? {
+          accountType: profile.accountType ?? "commercial",
+          authMode: "apiKey" as const,
+        }
+      : await promptAuthMode();
 
-  if (authMode === "oauth") {
-    saveProfile({ authMode: "oauth" });
+  if (authChoice.authMode === "oauth") {
+    saveProfile({ accountType: "personal", authMode: "oauth" });
+    clearProfileFields(["clientId", "consumerKey", "userId", "userSecret"]);
     await ensureOAuthLogin();
     return new Snaptrade({
       clientId: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
@@ -57,13 +75,15 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
     });
   }
 
+  const accountType = authChoice.accountType;
+
   // Prompt the user to enter their SnapTrade client ID and consumer key with inquirer
   const clientId = await input({
-    message: "Please enter your SnapTrade client ID:",
+    message: `Please enter your ${accountType === "personal" ? "Personal" : "Commercial"} SnapTrade client ID:`,
     required: true,
   });
   const consumerKey = await password({
-    message: "Please enter your SnapTrade consumer key:",
+    message: `Please enter your ${accountType === "personal" ? "Personal" : "Commercial"} SnapTrade consumer key:`,
     mask: true,
     validate: async (input) => {
       return input.trim() !== "";
@@ -80,10 +100,14 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
     await snaptrade.referenceData.getPartnerInfo();
     // This indicates the credentials are valid
     saveProfile({
+      accountType,
       authMode: "apiKey",
       clientId,
       consumerKey,
     });
+    if (accountType === "personal") {
+      clearProfileFields(["userId", "userSecret"]);
+    }
 
     console.log(
       chalk.green("✅ Your SnapTrade credentials have been saved.\n"),

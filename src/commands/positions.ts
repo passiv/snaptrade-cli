@@ -15,6 +15,7 @@ type Position = {
   symbol: string;
   quantity: number;
   costBasis?: number;
+  brokeragePrice?: number;
   currency: string;
   assetClass: AssetClass;
 };
@@ -45,6 +46,7 @@ function normalizePosition(position: AccountPosition): Position {
     symbol: symbol || "Unknown",
     quantity: parseNumber(position.units) ?? 0,
     costBasis: parseNumber(position.cost_basis),
+    brokeragePrice: parseNumber(position.price),
     currency: position.currency || instrument.currency || "USD",
     assetClass: isOption ? "option" : "equity",
   };
@@ -163,6 +165,17 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
 
       const symbols = aggregatedPositions.map((p) => p.symbol);
       const quotes = await getLastQuotes(symbols);
+      for (const position of combinedPositions) {
+        if (
+          quotes[position.symbol]?.last == null &&
+          position.brokeragePrice != null
+        ) {
+          quotes[position.symbol] = {
+            last: position.brokeragePrice,
+            currency: position.currency,
+          };
+        }
+      }
 
       const table = new Table({
         head: [
@@ -179,13 +192,14 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
       for (const position of aggregatedPositions) {
         const currency = position.currency;
         const quote = quotes[position.symbol];
-        const marketValue = quote?.last
-          ? quote?.last *
-            position.totalQuantity *
-            (position.assetClass === "option" ? 100 : 1)
-          : undefined;
+        const marketValue =
+          quote?.last != null
+            ? quote.last *
+              position.totalQuantity *
+              (position.assetClass === "option" ? 100 : 1)
+            : undefined;
         const pnl =
-          marketValue && position.avgCostBasis
+          marketValue != null && position.avgCostBasis != null
             ? marketValue -
               position.avgCostBasis *
                 position.totalQuantity *
@@ -209,19 +223,17 @@ export function positionsCommand(snaptrade: Snaptrade): Command {
 
           pnl == null
             ? "N/A"
-            : pnl > 0
-              ? (chalk.green(
-                  pnl.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: quote?.currency,
-                  }),
-                ) ?? "N/A")
-              : chalk.red(
-                  pnl.toLocaleString("en-US", {
-                    style: "currency",
-                    currency: quote?.currency,
-                  }),
-                ),
+            : (() => {
+                const formatted = pnl.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: quote?.currency,
+                });
+                return pnl > 0
+                  ? chalk.green(formatted)
+                  : pnl < 0
+                    ? chalk.red(formatted)
+                    : formatted;
+              })(),
         ]);
       }
 

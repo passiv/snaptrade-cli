@@ -22,6 +22,16 @@ export function statusCommand(snaptrade: Snaptrade): Command {
         return;
       }
 
+      if (profile.authMode === "apiKey" && profile.accountType === "personal") {
+        const response = await snaptrade.referenceData.getPartnerInfo();
+        console.log(
+          "Authentication: Personal SnapTrade client ID and consumer key",
+        );
+        console.log("Client ID:", chalk.green(response.data.slug));
+        console.log("API credentials ✅");
+        return;
+      }
+
       console.log(`Logged in as ${chalk.green(user.userId)}`);
       const response = await snaptrade.referenceData.getPartnerInfo();
       console.log("Client ID:", chalk.green(response.data.slug));

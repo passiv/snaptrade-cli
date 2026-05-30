@@ -31,7 +31,7 @@
     "prettier": "^3.6.2",
     "snaptrade-typescript-sdk": "^10.0.3",
     "string-width": "^7.1.0",
-    "yahoo-finance2": "^3.6.0",
+    "yahoo-finance2": "^3.14.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

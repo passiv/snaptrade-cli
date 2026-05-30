@@ -12,7 +12,7 @@ type YahooQuote = {
  * This helper removes spaces to match Yahoo's expected format.
  */
 function sanitizeYahooSymbol(symbol: string): string {
-  return symbol.replaceAll(" ", "");
+  return symbol.replaceAll(" ", "").replace(/\.([A-Z])$/, "-$1");
 }
 
 /**
@@ -23,7 +23,7 @@ function sanitizeYahooSymbol(symbol: string): string {
  */
 async function getYahooQuotesForSymbols(
   symbols: string[],
-  fields: string[] = ["regularMarketPrice", "currency"]
+  fields: string[] = ["regularMarketPrice", "currency"],
 ): Promise<Record<string, YahooQuote | undefined>> {
   if (!symbols.length) return {};
 
@@ -39,7 +39,7 @@ async function getYahooQuotesForSymbols(
     {
       // Some symbols (especially options) may not resolve; don't throw
       validateResult: false,
-    }
+    },
   )) as Record<string, YahooQuote | undefined>;
 
   // Map results back to the original symbols
@@ -65,14 +65,14 @@ export type Quote = {
 };
 
 export async function getLastQuote(
-  ticker: string
+  ticker: string,
 ): Promise<LastQuote | undefined> {
   const quotes = await getLastQuotes([ticker]);
   return quotes[ticker];
 }
 
 export async function getLastQuotes(
-  tickers: string[]
+  tickers: string[],
 ): Promise<Record<string, LastQuote | undefined>> {
   try {
     const uQuotes = await getYahooQuotesForSymbols(tickers, [
@@ -100,7 +100,7 @@ export async function getFullQuote(ticker: string): Promise<Quote | undefined> {
 }
 
 export async function getFullQuotes(
-  tickers: string[]
+  tickers: string[],
 ): Promise<Record<string, Quote | undefined>> {
   try {
     const uQuotes = await getYahooQuotesForSymbols(tickers, [
