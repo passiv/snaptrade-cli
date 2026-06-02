@@ -14,6 +14,8 @@
     "README.md"
   ],
   "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "prebuild": "node scripts/prepare-build.mjs",
     "build": "tsc -p tsconfig.build.json",
     "postbuild": "mkdir -p dist/utils && cp src/utils/oauthConstants.cjs dist/utils/",
@@ -35,10 +37,16 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@eslint/js": "^9.13.0",
     "@types/json-schema": "^7.0.15",
     "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.14.0",
+    "@typescript-eslint/parser": "^8.14.0",
+    "eslint": "^9.13.0",
+    "globals": "^14.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.14.0"
   },
   "type": "module"
 }

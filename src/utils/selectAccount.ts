@@ -46,7 +46,7 @@ export async function selectAccount({
             accountId,
           });
         return accountResponse.data;
-      } catch (error) {
+      } catch (_) {
         console.log("⚠️ Last account not found. Falling back to selector.");
       }
     }

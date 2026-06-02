@@ -13,27 +13,34 @@ export function createLazySnapTrade(builder: Builder): SnaptradeClient {
   const proxy = (path: (string | symbol)[] = []) =>
     new Proxy(function () {}, {
       // Keep chaining properties until something is called.
-      get(_t, prop) {
+      get(_t: unknown, prop: string | symbol) {
         // Make sure no one mistakes this for a Promise
         if (prop === "then" || prop === "catch" || prop === "finally")
           return undefined;
         return proxy([...path, prop]);
       },
       // When called, init (once) and invoke the real method with correct `this`.
-      async apply(_t, _thisArg, args) {
+      async apply(
+        _t: unknown,
+        _thisArg: unknown,
+        args: unknown[],
+      ): Promise<unknown> {
         const real = await ensure();
-        let parent: any = real;
-        let value: any = real;
+        let parent: unknown = real;
+        let value: unknown = real;
         for (const key of path) {
           parent = value;
-          value = value[key];
+          value = (value as Record<string | symbol, unknown>)[key];
         }
         if (typeof value !== "function") {
           throw new TypeError(
             `Property ${String(path[path.length - 1])} is not a function`,
           );
         }
-        return value.apply(parent, args);
+        return (value as (...args: unknown[]) => unknown).apply(
+          parent,
+          args as unknown[],
+        );
       },
     });
 

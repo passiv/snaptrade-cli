@@ -1,6 +1,6 @@
 import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
-import { Command } from "commander";
+import { Command, type OptionValues } from "commander";
 import type {
   Account,
   Balance,
@@ -72,12 +72,20 @@ export type TradeArgs = {
 
 export async function processCommonOptionArgs(
   snaptrade: SnaptradeClient,
-  command: any,
+  command: Command,
 ): Promise<TradeArgs> {
   const user = await loadOrRegisterUser(snaptrade);
 
+  const optionCommand = command.parent;
+  const tradeCommand = optionCommand?.parent;
+  const rootCommand = tradeCommand?.parent;
+
+  if (!optionCommand || !tradeCommand || !rootCommand) {
+    throw new Error("Option command is missing its parent command context.");
+  }
+
   const { ticker, orderType, limitPrice, action, tif } =
-    command.parent.parent.opts();
+    tradeCommand.opts<OptionValues>();
 
   const orderTypeInput = orderType as (typeof ORDER_TYPES)[number];
 
@@ -86,13 +94,13 @@ export async function processCommonOptionArgs(
     process.exit(1);
   }
 
-  const { contracts } = command.parent.opts();
+  const { contracts } = optionCommand.opts<OptionValues>();
   const quantity = parseInt(contracts);
 
   const selectedAccount = await selectAccount({
     snaptrade,
     context: "option_trade",
-    useLastAccount: command.parent.parent.parent.opts().useLastAccount,
+    useLastAccount: rootCommand.opts<OptionValues>().useLastAccount,
   });
 
   const balanceResponse = await withDebouncedSpinner(
@@ -150,11 +158,15 @@ export async function confirmTrade(
           symbol,
         });
         legQuotes[symbol] = res.data;
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const error = e as Record<string, unknown>;
         if (process.argv.includes("--verbose")) {
           console.error(
             `[option-quote] ${symbol}:`,
-            e?.responseBody ?? e?.response?.data ?? e?.message,
+            (error.responseBody as unknown) ??
+              ((error.response as Record<string, unknown> | undefined)
+                ?.data as unknown) ??
+              (error.message as unknown),
           );
         }
         legQuotes[symbol] = undefined;
@@ -338,11 +350,15 @@ export async function placeTrade(
       legs: legsInput,
     });
     impact = impactResponse.data;
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const error = e as Record<string, unknown>;
     if (process.argv.includes("--verbose")) {
       console.error(
         "[option-impact]:",
-        e?.responseBody ?? e?.response?.data ?? e?.message,
+        (error.responseBody as unknown) ??
+          ((error.response as Record<string, unknown> | undefined)
+            ?.data as unknown) ??
+          (error.message as unknown),
       );
     }
   }

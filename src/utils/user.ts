@@ -6,10 +6,15 @@ import { printSetupIntro, promptAuthMode } from "./authPrompt.ts";
 import { ensureOAuthLogin } from "./oauth.ts";
 import type { SnaptradeClient } from "./snaptradeClient.ts";
 
-export type User = {
-  userId?: string;
-  userSecret?: string;
-};
+export type User =
+  | {
+      userId: string;
+      userSecret: string;
+    }
+  | {
+      userId?: undefined;
+      userSecret?: undefined;
+    };
 
 export async function loadOrRegisterUser(
   snaptrade: SnaptradeClient,

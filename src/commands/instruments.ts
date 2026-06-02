@@ -10,7 +10,7 @@ export function instrumentsCommand(snaptrade: SnaptradeClient): Command {
   return new Command("instruments")
     .description("Get a list of available instruments from a broker")
     .action(async () => {
-      const user = await loadOrRegisterUser(snaptrade);
+      await loadOrRegisterUser(snaptrade);
 
       const response = await snaptrade.referenceData.getPartnerInfo();
       // Sort brokers by slug
@@ -20,7 +20,7 @@ export function instrumentsCommand(snaptrade: SnaptradeClient): Command {
 
       const broker = await search({
         message: "Search for a broker",
-        source: async (input, { signal }) => {
+        source: async (input) => {
           return (
             response.data.allowed_brokerages
               ?.filter((broker) =>

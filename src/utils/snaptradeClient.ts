@@ -1,3 +1,3 @@
-import type { Snaptrade } from "snaptrade-typescript-sdk";
+import type { AuthMode, Snaptrade } from "snaptrade-typescript-sdk";
 
-export type SnaptradeClient = Snaptrade<any>;
+export type SnaptradeClient = Snaptrade<AuthMode>;

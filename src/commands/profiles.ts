@@ -46,7 +46,7 @@ export function profilesCommand(): Command {
   cmd
     .command("use [name]")
     .description("Switch active profile (creates it if it doesn't exist)")
-    .action(async (name: string | undefined, opts: { register?: boolean }) => {
+    .action(async (name: string | undefined, _opts: { register?: boolean }) => {
       const profile = await (async () => {
         if (name) {
           return name;

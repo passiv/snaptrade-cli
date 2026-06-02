@@ -57,8 +57,9 @@ export function printAccountSection({
 }) {
   const currency = account.balance.total?.currency;
   logLine("🏦", "Account", account.name!);
+  const total = account.balance.total;
   logLine("💰", "Total Value", {
-    amount: account.balance.total?.amount!,
+    amount: total?.amount ?? 0,
     currency,
   });
   if (balance) {
@@ -243,9 +244,9 @@ export function printOrderDetail(order: AccountOrderRecord) {
   printOrderParams({
     action: order.action as "BUY" | "SELL",
     orderType: order.order_type!,
-    limitPrice: Number(order.limit_price) ?? undefined,
-    stopPrice: Number(order.stop_price) ?? undefined,
-    timeInForce: (order.time_in_force || (order as any).tif) as string,
+    limitPrice: order.limit_price ? Number(order.limit_price) : undefined,
+    stopPrice: order.stop_price ? Number(order.stop_price) : undefined,
+    timeInForce: (order.time_in_force || (order as Record<string, unknown>).tif) as string,
     currency,
   });
 
@@ -264,8 +265,8 @@ export function printOrderDetail(order: AccountOrderRecord) {
       symbol?: string;
     };
 
-    const rawLegs: RawOrderLeg[] = Array.isArray((order as any).legs)
-      ? ((order as any).legs as RawOrderLeg[])
+    const rawLegs: RawOrderLeg[] = Array.isArray((order as Record<string, unknown>).legs)
+      ? ((order as Record<string, unknown>).legs as RawOrderLeg[])
       : [];
 
     const toOptionLeg = (leg: RawOrderLeg): OptionLeg | undefined => {
@@ -377,10 +378,10 @@ function parseOccLike(
 ): { type: OptionLeg["type"]; strike: number; expiration: string } | undefined {
   if (!sym) return undefined;
   const s = sym.trim();
-  let m = s.match(/^(\d{6})([CP])(\d{8})$/i);
+  let m: RegExpMatchArray | null = s.match(/^(\d{6})([CP])(\d{8})$/i);
   if (!m && s.length >= 15) {
     const trimmed = s.length >= 21 ? s.slice(6) : s;
-    m = trimmed.match(/^(\d{6})([CP])(\d{8})$/i) || (undefined as any);
+    m = trimmed.match(/^(\d{6})([CP])(\d{8})$/i);
   }
   if (!m) return undefined;
   const [, yymmdd, cp, strikeRaw] = m;

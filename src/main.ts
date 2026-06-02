@@ -50,7 +50,7 @@ function createSnaptradeClient({
         : SnaptradeAuth.commercialApiKey({ clientId, consumerKey }),
     userAgent: `snaptrade-cli/${version}`,
     basePath,
-  });
+  }) as SnaptradeClient;
 }
 
 async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
@@ -65,7 +65,7 @@ async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
       }),
       userAgent: `snaptrade-cli/${version}`,
       basePath: profile.basePath,
-    });
+    }) as SnaptradeClient;
   }
 
   if (profile.clientId && profile.consumerKey) {
@@ -107,7 +107,7 @@ async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
       }),
       userAgent: `snaptrade-cli/${version}`,
       basePath: profile.basePath,
-    });
+    }) as SnaptradeClient;
   }
 
   const accountType = authChoice.accountType;
@@ -149,7 +149,7 @@ async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
       chalk.green("✅ Your SnapTrade credentials have been saved.\n"),
     );
     return snaptrade;
-  } catch (error) {
+  } catch (_) {
     console.error(
       "❌ The client ID or consumer key you provided doesn't seem to be valid. Please try again.",
     );

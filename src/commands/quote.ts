@@ -5,7 +5,6 @@ import { loadOrRegisterUser } from "../utils/user.ts";
 import Table from "cli-table3";
 import { search } from "@inquirer/prompts";
 import assert from "assert";
-import ora from "ora";
 import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
@@ -37,7 +36,7 @@ export function quoteCommand(snaptrade: SnaptradeClient): Command {
             });
           const answer = await search({
             message: "Search for an instrument",
-            source: async (input, { signal }) => {
+            source: async (input) => {
               return response.data.items
                 .filter((instrument) =>
                   instrument.symbol
@@ -94,9 +93,13 @@ export function quoteCommand(snaptrade: SnaptradeClient): Command {
           const instruments = await withDebouncedSpinner(
             `Loading all available instruments for ${conn.data.brokerage?.display_name}, this could take a little while...`,
             async () => {
+              const brokerage = conn.data.brokerage;
+              if (!brokerage?.slug) {
+                return [];
+              }
               const instrumentsResponse =
                 await snaptrade.referenceData.listAllBrokerageInstruments({
-                  slug: conn.data.brokerage?.slug!,
+                  slug: brokerage.slug,
                 });
               return instrumentsResponse.data.instruments;
             },
@@ -108,7 +111,7 @@ export function quoteCommand(snaptrade: SnaptradeClient): Command {
 
           const answer = await search({
             message: "Search for an instrument",
-            source: async (input, { signal }) => {
+            source: async (input) => {
               return instruments
                 .filter((instrument) =>
                   instrument.symbol

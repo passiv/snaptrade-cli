@@ -35,7 +35,7 @@ async function getYahooQuotesForSymbols(
     {
       fields,
       return: "object",
-    } as any,
+    } as Record<string, unknown>,
     {
       // Some symbols (especially options) may not resolve; don't throw
       validateResult: false,
