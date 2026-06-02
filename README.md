@@ -28,7 +28,7 @@ When you run `snaptrade <command>` for the first time, the CLI asks how you want
 Once authentication is set, call `snaptrade connect` to connect a new account. For Commercial client ID and consumer key profiles, this will register a new SnapTrade user if one does not exist yet. For Personal OAuth and Personal client ID and consumer key profiles, the CLI uses the authenticated Personal user implicitly. In all cases, the command opens the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
 > [!NOTE]
-> Personal OAuth profiles currently support read and connection-management commands. Trading and write operations require Commercial SnapTrade API credentials.
+> Personal OAuth profiles currently support read and connection-management commands. Trading and write operations require SnapTrade API-key authentication, either with Personal API keys where available or Commercial API credentials.
 
 <img src="docs/snaptrade-connect.png" />
 <img src="docs/snaptrade-select.png" />

@@ -10,7 +10,7 @@ export function assertApiKeyProfileForWrite(commandName: string): void {
 
   console.error(
     chalk.red(
-      `${commandName} requires Commercial SnapTrade API credentials. Personal OAuth currently grants read access only and cannot be used for trading or write operations.`,
+      `${commandName} requires SnapTrade API-key authentication. Personal OAuth currently grants read access only and cannot be used for trading or write operations.`,
     ),
   );
   process.exit(1);
