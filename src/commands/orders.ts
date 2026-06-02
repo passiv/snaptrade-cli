@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { displayOrders } from "../utils/displayOrders.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
-export function ordersCommand(snaptrade: Snaptrade): Command {
+export function ordersCommand(snaptrade: SnaptradeClient): Command {
   return new Command("orders")
     .description("List all orders for a given account")
     .action(async (opts, command) => {

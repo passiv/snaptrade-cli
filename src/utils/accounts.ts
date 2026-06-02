@@ -1,8 +1,8 @@
 import {
-  Snaptrade,
   type Account,
   type BrokerageAuthorization,
 } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "./snaptradeClient.ts";
 import type { User } from "./user.ts";
 
 export type AccountsByConnection = {
@@ -11,7 +11,7 @@ export type AccountsByConnection = {
 };
 
 export async function listAccountsByConnection(
-  snaptrade: Snaptrade,
+  snaptrade: SnaptradeClient,
   user: User,
 ): Promise<AccountsByConnection[]> {
   const [connections, accounts] = await Promise.all([

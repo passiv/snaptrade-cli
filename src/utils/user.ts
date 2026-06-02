@@ -1,31 +1,28 @@
 import os from "os";
 import chalk from "chalk";
-import { Snaptrade, SnaptradeError } from "snaptrade-typescript-sdk";
+import { SnaptradeError } from "snaptrade-typescript-sdk";
 import { getActiveProfileName, getProfile, saveProfile } from "./settings.ts";
 import { printSetupIntro, promptAuthMode } from "./authPrompt.ts";
 import { ensureOAuthLogin } from "./oauth.ts";
+import type { SnaptradeClient } from "./snaptradeClient.ts";
 
 export type User = {
-  userId: string;
-  userSecret: string;
+  userId?: string;
+  userSecret?: string;
 };
 
-export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
+export async function loadOrRegisterUser(
+  snaptrade: SnaptradeClient,
+): Promise<User> {
   const profile = getProfile();
 
   if (profile.authMode === "oauth") {
     await ensureOAuthLogin();
-    return {
-      userId: "oauth",
-      userSecret: "oauth",
-    };
+    return {};
   }
 
   if (profile.authMode === "apiKey" && profile.accountType === "personal") {
-    return {
-      userId: "personal",
-      userSecret: "personal",
-    };
+    return {};
   }
 
   if (!profile.authMode && !profile.clientId && !profile.consumerKey) {
@@ -35,17 +32,11 @@ export async function loadOrRegisterUser(snaptrade: Snaptrade): Promise<User> {
 
     if (authChoice.authMode === "oauth") {
       await ensureOAuthLogin();
-      return {
-        userId: "oauth",
-        userSecret: "oauth",
-      };
+      return {};
     }
 
     if (authChoice.accountType === "personal") {
-      return {
-        userId: "personal",
-        userSecret: "personal",
-      };
+      return {};
     }
   }
 

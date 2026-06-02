@@ -3,10 +3,11 @@ import Table from "cli-table3";
 import { Command } from "commander";
 import type { Ora } from "ora";
 import ora from "ora";
-import { Snaptrade, type AccountPosition } from "snaptrade-typescript-sdk";
+import type { AccountPosition } from "snaptrade-typescript-sdk";
 import { listAccountsByConnection } from "../utils/accounts.ts";
 import { getLastQuotes } from "../utils/quotes.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
 type AssetClass = "equity" | "option";
@@ -101,7 +102,7 @@ function aggregatePositions(positions: Position[]): AggregatedPosition[] {
 
   return result;
 }
-export function positionsCommand(snaptrade: Snaptrade): Command {
+export function positionsCommand(snaptrade: SnaptradeClient): Command {
   return new Command("positions")
     .description("List all positions for a given account")
     .option(

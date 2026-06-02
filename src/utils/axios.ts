@@ -32,20 +32,6 @@ function redactUrl(url: string | undefined): string | undefined {
   }
 }
 
-function scrubOAuthSdkCredentials(config: InternalAxiosRequestConfig) {
-  if (!config.url) return;
-
-  const parsed = new URL(
-    config.url,
-    config.baseURL ?? "https://api.snaptrade.com",
-  );
-  for (const key of ["clientId", "timestamp", "userId", "userSecret"]) {
-    parsed.searchParams.delete(key);
-  }
-  config.url = parsed.toString();
-  delete config.headers.Signature;
-}
-
 function redactHeaders(
   headers: InternalAxiosRequestConfig["headers"] | undefined,
 ) {
@@ -164,7 +150,6 @@ export function installAxiosPatch() {
     const token = await refreshOAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      scrubOAuthSdkCredentials(config);
     }
 
     return config;
@@ -186,7 +171,6 @@ export function installAxiosPatch() {
         if (token) {
           config.__snaptradeOAuthRetried = true;
           config.headers.Authorization = `Bearer ${token}`;
-          scrubOAuthSdkCredentials(config);
           return axios(config);
         }
       }

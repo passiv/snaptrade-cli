@@ -1,13 +1,13 @@
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "./snaptradeClient.ts";
 
-type Builder = () => Snaptrade | Promise<Snaptrade>;
+type Builder = () => SnaptradeClient | Promise<SnaptradeClient>;
 
 /**
  * Create a Snaptrade object that initializes on first method call.
  * Usage: const st = createLazySnapTrade(async () => initializeSnaptrade(...));
  */
-export function createLazySnapTrade(builder: Builder): Snaptrade {
-  let ready: Promise<Snaptrade> | null = null;
+export function createLazySnapTrade(builder: Builder): SnaptradeClient {
+  let ready: Promise<SnaptradeClient> | null = null;
   const ensure = () => (ready ??= Promise.resolve().then(builder));
 
   const proxy = (path: (string | symbol)[] = []) =>
@@ -30,12 +30,12 @@ export function createLazySnapTrade(builder: Builder): Snaptrade {
         }
         if (typeof value !== "function") {
           throw new TypeError(
-            `Property ${String(path[path.length - 1])} is not a function`
+            `Property ${String(path[path.length - 1])} is not a function`,
           );
         }
         return value.apply(parent, args);
       },
     });
 
-  return proxy() as unknown as Snaptrade;
+  return proxy() as unknown as SnaptradeClient;
 }

@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import { getActiveProfileName, getProfile } from "../utils/settings.ts";
 
-export function statusCommand(snaptrade: Snaptrade): Command {
+export function statusCommand(snaptrade: SnaptradeClient): Command {
   return new Command("status")
     .description("Get current status of your SnapTrade authentication")
     .action(async () => {

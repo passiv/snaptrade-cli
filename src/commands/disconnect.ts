@@ -1,10 +1,10 @@
 import { checkbox } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
-export function disconnectCommand(snaptrade: Snaptrade): Command {
+export function disconnectCommand(snaptrade: SnaptradeClient): Command {
   return new Command("disconnect")
     .description("Remove an existing broker connection")
     .argument("[connectionId]", "Connection ID to remove")
@@ -40,18 +40,20 @@ export function disconnectCommand(snaptrade: Snaptrade): Command {
               ...user,
               authorizationId: id,
             });
-          })
+          }),
       );
 
       if (connectionIds.length === 1) {
         console.log(
-          chalk.green(`✅ Successfully deleted connection ${connectionIds[0]}.`)
+          chalk.green(
+            `✅ Successfully deleted connection ${connectionIds[0]}.`,
+          ),
         );
       } else {
         console.log(
           chalk.green(
-            `✅ Successfully deleted the following connections:\n${connectionIds.join("\n")}`
-          )
+            `✅ Successfully deleted the following connections:\n${connectionIds.join("\n")}`,
+          ),
         );
       }
     });

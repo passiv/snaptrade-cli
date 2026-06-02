@@ -1,10 +1,10 @@
 import { select } from "@inquirer/prompts";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { handleConnect } from "../utils/connect.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
-export function reconnectCommand(snaptrade: Snaptrade): Command {
+export function reconnectCommand(snaptrade: SnaptradeClient): Command {
   return new Command("reconnect")
     .description("Re-establish an existing disabled connection")
     .argument("[connectionId]", "Connection ID to reconnect")
@@ -41,7 +41,7 @@ export function reconnectCommand(snaptrade: Snaptrade): Command {
 
       if (!existingConnectionId) {
         console.log(
-          "No disabled connections found, therefore there's no need to reconnect."
+          "No disabled connections found, therefore there's no need to reconnect.",
         );
         return;
       }

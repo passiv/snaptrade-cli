@@ -1,10 +1,10 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import Table from "cli-table3";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import chalk from "chalk";
 
-export function connectionsCommand(snaptrade: Snaptrade): Command {
+export function connectionsCommand(snaptrade: SnaptradeClient): Command {
   return new Command("connections")
     .description("List all broker connections")
     .action(async () => {

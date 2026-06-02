@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import open from "open";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "./snaptradeClient.ts";
 import type { User } from "./user";
 
 export async function handleConnect({
@@ -10,7 +10,7 @@ export async function handleConnect({
   brokerSlug,
   connectionType = "trade-if-available",
 }: {
-  snaptrade: Snaptrade;
+  snaptrade: SnaptradeClient;
   user: User;
   existingConnectionId?: string;
   brokerSlug?: string;
@@ -33,8 +33,8 @@ export async function handleConnect({
   const redirectURI = loginResponse.data.redirectURI;
   console.log(
     chalk.cyan(
-      "\n🌐 Opening the SnapTrade connection portal in your browser...\n"
-    )
+      "\n🌐 Opening the SnapTrade connection portal in your browser...\n",
+    ),
   );
 
   // Add darkMode=true to the URL to enable dark mode in the portal
@@ -49,22 +49,22 @@ export async function handleConnect({
       await snaptrade.connections.listBrokerageAuthorizations(user);
     // Find the connection that's more recently updated than when we started
     const newOrUpdated = connections.data.find(
-      (conn) => new Date(conn.updated_date!) > startTime
+      (conn) => new Date(conn.updated_date!) > startTime,
     );
     if (newOrUpdated) {
       clearInterval(interval);
       console.log(
         chalk.green(
-          `✅ ${existingConnectionId ? "Reconnected" : "Connected"} to ${newOrUpdated.brokerage?.name}`
-        )
+          `✅ ${existingConnectionId ? "Reconnected" : "Connected"} to ${newOrUpdated.brokerage?.name}`,
+        ),
       );
 
       console.log(
-        `To see your connections, run ${chalk.green("snaptrade connections")}.`
+        `To see your connections, run ${chalk.green("snaptrade connections")}.`,
       );
 
       console.log(
-        `To disconnect, run ${chalk.green(`snaptrade disconnect ${newOrUpdated.id}`)}.`
+        `To disconnect, run ${chalk.green(`snaptrade disconnect ${newOrUpdated.id}`)}.`,
       );
     }
   }, 5000);

@@ -2,12 +2,13 @@ import { confirm } from "@inquirer/prompts";
 import chalk from "chalk";
 import { Command } from "commander";
 import type {
+  Account,
   Balance,
   MlegActionStrict,
   MlegInstrumentType,
   OptionImpact,
+  OptionQuote,
 } from "snaptrade-typescript-sdk";
-import { Snaptrade, type Account } from "snaptrade-typescript-sdk";
 import { generateOccSymbol } from "../../../utils/generateOccSymbol.ts";
 import {
   logLine,
@@ -16,10 +17,10 @@ import {
   printOrderParams,
 } from "../../../utils/preview.ts";
 import { formatAmount, getLastQuote } from "../../../utils/quotes.ts";
-import type { OptionQuote } from "snaptrade-typescript-sdk";
 import { selectAccount } from "../../../utils/selectAccount.ts";
+import type { SnaptradeClient } from "../../../utils/snaptradeClient.ts";
 import { handlePostTrade } from "../../../utils/trading.ts";
-import { loadOrRegisterUser } from "../../../utils/user.ts";
+import { loadOrRegisterUser, type User } from "../../../utils/user.ts";
 import { withDebouncedSpinner } from "../../../utils/withDebouncedSpinner.ts";
 import { ORDER_TYPES, TIME_IN_FORCE } from "../index.ts";
 import { callCommand } from "./call.ts";
@@ -30,7 +31,7 @@ import { strangleCommand } from "./strangle.ts";
 import { verticalCallSpreadCommand } from "./vertical-call-spread.ts";
 import { verticalPutSpreadCommand } from "./vertical-put-spread.ts";
 
-export function optionCommand(snaptrade: Snaptrade): Command {
+export function optionCommand(snaptrade: SnaptradeClient): Command {
   const cmd = new Command("option")
     .description("Place single leg or multi-leg option trade")
     .requiredOption(
@@ -70,7 +71,7 @@ export type TradeArgs = {
 };
 
 export async function processCommonOptionArgs(
-  snaptrade: Snaptrade,
+  snaptrade: SnaptradeClient,
   command: any,
 ): Promise<TradeArgs> {
   const user = await loadOrRegisterUser(snaptrade);
@@ -116,8 +117,8 @@ export async function processCommonOptionArgs(
 }
 
 export async function confirmTrade(
-  snaptrade: Snaptrade,
-  user: { userId: string; userSecret: string },
+  snaptrade: SnaptradeClient,
+  user: User,
   account: Account,
   ticker: string,
   legs: Leg[],
@@ -291,7 +292,7 @@ export async function confirmTrade(
 }
 
 export async function placeTrade(
-  snaptrade: Snaptrade,
+  snaptrade: SnaptradeClient,
   legs: Leg[],
   trade: TradeArgs,
 ) {

@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../../utils/snaptradeClient.ts";
 import { placeTrade, processCommonOptionArgs } from "./index.ts";
 import type { Leg } from "./index.ts";
 
-export function straddleCommand(snaptrade: Snaptrade): Command {
+export function straddleCommand(snaptrade: SnaptradeClient): Command {
   return new Command("straddle")
     .description("Place a straddle order")
     .requiredOption("--exp <date>", "Expiration date (YYYY-MM-DD)")

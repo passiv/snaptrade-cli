@@ -1,13 +1,13 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { printOrderDetail } from "../utils/preview.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { handlePostTrade } from "../utils/trading.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import { assertApiKeyProfileForWrite } from "../utils/authMode.ts";
 
-export function cancelOrderCommand(snaptrade: Snaptrade): Command {
+export function cancelOrderCommand(snaptrade: SnaptradeClient): Command {
   return new Command("cancel-order")
     .description("Cancel an existing order")
     .requiredOption("--orderId <id>", "Order ID to cancel")

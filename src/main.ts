@@ -4,7 +4,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import { Snaptrade, SnaptradeAuth } from "snaptrade-typescript-sdk";
 import { fileURLToPath } from "url";
 import { registerCommands } from "./commands/index.ts";
 import {
@@ -13,24 +13,56 @@ import {
   saveProfile,
 } from "./utils/settings.ts";
 import { createLazySnapTrade } from "./utils/lazySnapTrade.ts";
-import {
-  ensureOAuthLogin,
-  OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
-} from "./utils/oauth.ts";
+import { ensureOAuthLogin, refreshOAuthToken } from "./utils/oauth.ts";
 import { printSetupIntro, promptAuthMode } from "./utils/authPrompt.ts";
 import { installAxiosPatch } from "./utils/axios.ts";
+import type { SnaptradeClient } from "./utils/snaptradeClient.ts";
 
 installAxiosPatch();
 
-async function initializeSnaptrade(version: string): Promise<Snaptrade> {
+function getOAuthAccessToken() {
+  return async () => {
+    const token = await refreshOAuthToken();
+    if (!token) {
+      throw new Error("No SnapTrade OAuth access token is available.");
+    }
+    return token;
+  };
+}
+
+function createSnaptradeClient({
+  accountType,
+  clientId,
+  consumerKey,
+  version,
+  basePath,
+}: {
+  accountType: "personal" | "commercial";
+  clientId: string;
+  consumerKey: string;
+  version: string;
+  basePath?: string;
+}): SnaptradeClient {
+  return new Snaptrade({
+    auth:
+      accountType === "personal"
+        ? SnaptradeAuth.personalApiKey({ clientId, consumerKey })
+        : SnaptradeAuth.commercialApiKey({ clientId, consumerKey }),
+    userAgent: `snaptrade-cli/${version}`,
+    basePath,
+  });
+}
+
+async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
   // Load client ID and consumer key from the active profile
   const profile = getProfile();
 
   if (profile.authMode === "oauth") {
     await ensureOAuthLogin();
     return new Snaptrade({
-      clientId: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
-      consumerKey: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      auth: SnaptradeAuth.personalOAuth({
+        accessToken: getOAuthAccessToken(),
+      }),
       userAgent: `snaptrade-cli/${version}`,
       basePath: profile.basePath,
     });
@@ -45,10 +77,12 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
       clearProfileFields(["userId", "userSecret"]);
     }
     // TODO may want to validate these credentials and reprompt if invalid
-    return new Snaptrade({
+    return createSnaptradeClient({
+      accountType:
+        profile.accountType === "personal" ? "personal" : "commercial",
       clientId: profile.clientId,
       consumerKey: profile.consumerKey,
-      userAgent: `snaptrade-cli/${version}`,
+      version,
       basePath: profile.basePath,
     });
   }
@@ -68,8 +102,9 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
     clearProfileFields(["clientId", "consumerKey", "userId", "userSecret"]);
     await ensureOAuthLogin();
     return new Snaptrade({
-      clientId: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
-      consumerKey: OAUTH_SDK_PLACEHOLDER_CREDENTIAL,
+      auth: SnaptradeAuth.personalOAuth({
+        accessToken: getOAuthAccessToken(),
+      }),
       userAgent: `snaptrade-cli/${version}`,
       basePath: profile.basePath,
     });
@@ -90,10 +125,11 @@ async function initializeSnaptrade(version: string): Promise<Snaptrade> {
     },
   });
 
-  const snaptrade = new Snaptrade({
+  const snaptrade = createSnaptradeClient({
+    accountType,
     consumerKey,
     clientId,
-    userAgent: `snaptrade-cli/${version}`,
+    version,
     basePath: profile.basePath,
   });
   try {

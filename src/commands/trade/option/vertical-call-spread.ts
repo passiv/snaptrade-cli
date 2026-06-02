@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../../utils/snaptradeClient.ts";
 import { placeTrade, processCommonOptionArgs } from "./index.ts";
 import type { Leg } from "./index.ts";
 
-export function verticalCallSpreadCommand(snaptrade: Snaptrade): Command {
+export function verticalCallSpreadCommand(snaptrade: SnaptradeClient): Command {
   return new Command("vertical-call-spread")
     .description("Place a vertical call spread order")
     .requiredOption("--exp <date>", "Expiration date (YYYY-MM-DD)")

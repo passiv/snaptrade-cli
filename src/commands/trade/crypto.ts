@@ -1,17 +1,17 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../utils/snaptradeClient.ts";
 import { selectAccount } from "../../utils/selectAccount.ts";
 import { handlePostTrade } from "../../utils/trading.ts";
 import { loadOrRegisterUser } from "../../utils/user.ts";
 import { ORDER_TYPES } from "./index.ts";
 
-export function cryptoCommand(snaptrade: Snaptrade): Command {
+export function cryptoCommand(snaptrade: SnaptradeClient): Command {
   return new Command("crypto")
     .description("Place a simple crypto trade with one leg")
     .requiredOption(
       "--amount <number>",
-      "The amount of the base currency to buy or sell."
+      "The amount of the base currency to buy or sell.",
     )
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
@@ -34,7 +34,7 @@ export function cryptoCommand(snaptrade: Snaptrade): Command {
           {
             style: "currency",
             currency: account.balance.total.currency,
-          }
+          },
         )}`,
         ticker,
         action,

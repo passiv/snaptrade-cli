@@ -1,6 +1,6 @@
 import { confirm } from "@inquirer/prompts";
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../utils/snaptradeClient.ts";
 import { printTradePreview } from "../../utils/preview.ts";
 import { getFullQuote } from "../../utils/quotes.ts";
 import { selectAccount } from "../../utils/selectAccount.ts";
@@ -9,16 +9,16 @@ import { loadOrRegisterUser } from "../../utils/user.ts";
 import { withDebouncedSpinner } from "../../utils/withDebouncedSpinner.ts";
 import { TRADING_SESSIONS } from "./index.ts";
 
-export function equityCommand(snaptrade: Snaptrade): Command {
+export function equityCommand(snaptrade: SnaptradeClient): Command {
   return new Command("equity")
     .description("Place a simple equity trade with one leg")
     .option(
       "--shares <number>",
-      "Number of shares. Either shares or notional must be provided."
+      "Number of shares. Either shares or notional must be provided.",
     )
     .option(
       "--notional <number>",
-      "Notional amount. Either shares or notional must be provided."
+      "Notional amount. Either shares or notional must be provided.",
     )
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
@@ -63,7 +63,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
               ...user,
               accountId: account.id,
             }),
-          ])
+          ]),
       );
 
       const trade = {
@@ -73,7 +73,7 @@ export function equityCommand(snaptrade: Snaptrade): Command {
           {
             style: "currency",
             currency: account.balance.total.currency,
-          }
+          },
         )}`,
         ticker,
         quote,

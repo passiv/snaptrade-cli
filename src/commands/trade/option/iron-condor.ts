@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../../utils/snaptradeClient.ts";
 import { placeTrade, processCommonOptionArgs } from "./index.ts";
 import type { Leg } from "./index.ts";
 
-export function ironCondorCommand(snaptrade: Snaptrade): Command {
+export function ironCondorCommand(snaptrade: SnaptradeClient): Command {
   return new Command("iron-condor")
     .description("Place an iron condor order")
     .requiredOption("--exp <date>", "Expiration date (YYYY-MM-DD)")

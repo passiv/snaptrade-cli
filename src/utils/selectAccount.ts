@@ -1,9 +1,9 @@
 import { Separator } from "@inquirer/core";
 import { select } from "@inquirer/prompts";
 import chalk from "chalk";
-import { Snaptrade } from "snaptrade-typescript-sdk";
 import { listAccountsByConnection } from "./accounts.ts";
 import { getProfile, saveProfile } from "./settings.ts";
+import type { SnaptradeClient } from "./snaptradeClient.ts";
 import { loadOrRegisterUser } from "./user.ts";
 
 const brokers_with_mleg_options = [
@@ -26,7 +26,7 @@ export async function selectAccount({
   context,
   useLastAccount,
 }: {
-  snaptrade: Snaptrade;
+  snaptrade: SnaptradeClient;
   useLastAccount: boolean;
   context?: "option_trade" | "equity_trade" | "crypto_trade";
 }) {

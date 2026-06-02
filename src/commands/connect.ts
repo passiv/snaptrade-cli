@@ -1,9 +1,9 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { handleConnect } from "../utils/connect.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
-export function connectCommand(snaptrade: Snaptrade): Command {
+export function connectCommand(snaptrade: SnaptradeClient): Command {
   return new Command("connect")
     .description("Establish a new broker connection")
     .option("--broker <slug>", "Brokerage slug to connect")
@@ -16,11 +16,11 @@ export function connectCommand(snaptrade: Snaptrade): Command {
         const available = response.data.allowed_brokerages;
 
         const broker = response.data.allowed_brokerages?.find(
-          (b) => b.slug === slug
+          (b) => b.slug === slug,
         );
         if (!broker) {
           console.error(
-            `${slug} is not a valid broker slug. Available brokers: ${available?.map((b) => b.slug).join(", ")}`
+            `${slug} is not a valid broker slug. Available brokers: ${available?.map((b) => b.slug).join(", ")}`,
           );
           return;
         }

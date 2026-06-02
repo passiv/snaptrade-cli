@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../../utils/snaptradeClient.ts";
 import { cryptoCommand } from "./crypto.ts";
 import { equityCommand } from "./equity.ts";
 import { optionCommand } from "./option/index.ts";
@@ -9,7 +9,7 @@ export const ORDER_TYPES = ["Market", "Limit", "Stop", "StopLimit"] as const;
 export const TIME_IN_FORCE = ["Day", "GTC"] as const;
 export const TRADING_SESSIONS = ["REGULAR", "EXTENDED"] as const;
 
-export function tradeCommand(snaptrade: Snaptrade): Command {
+export function tradeCommand(snaptrade: SnaptradeClient): Command {
   const cmd = new Command("trade")
     .description("Execute different types of trades (equity, options, crypto)")
     .requiredOption("--ticker <symbol>", "Underlying asset symbol (e.g., AAPL)")

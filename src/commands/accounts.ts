@@ -1,12 +1,12 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import Table from "cli-table3";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import chalk from "chalk";
 import { formatDistanceToNow } from "date-fns";
 import { listAccountsByConnection } from "../utils/accounts.ts";
 
-export function accountsCommand(snaptrade: Snaptrade): Command {
+export function accountsCommand(snaptrade: SnaptradeClient): Command {
   return new Command("accounts")
     .description("List all connected accounts")
     .action(async () => {

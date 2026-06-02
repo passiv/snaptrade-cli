@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { statusCommand } from "./status.ts";
 import { tradeCommand } from "./trade/index.ts";
 import { connectionsCommand } from "./connections.ts";
@@ -16,7 +16,10 @@ import { ordersCommand } from "./orders.ts";
 import { instrumentsCommand } from "./instruments.ts";
 import { profilesCommand } from "./profiles.ts";
 
-export function registerCommands(program: Command, snaptrade: Snaptrade): void {
+export function registerCommands(
+  program: Command,
+  snaptrade: SnaptradeClient,
+): void {
   program.addCommand(statusCommand(snaptrade));
   program.addCommand(brokersCommand(snaptrade));
   program.addCommand(connectCommand(snaptrade));

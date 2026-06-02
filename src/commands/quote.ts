@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 import Table from "cli-table3";
@@ -10,12 +10,12 @@ import { withDebouncedSpinner } from "../utils/withDebouncedSpinner.ts";
 
 const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
 
-export function quoteCommand(snaptrade: Snaptrade): Command {
+export function quoteCommand(snaptrade: SnaptradeClient): Command {
   return new Command("quote")
     .description("Get the latest market quote")
     .argument(
       "[symbols]",
-      "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols"
+      "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols",
     )
     .action(async (symbolsArgs: string, opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
@@ -42,7 +42,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
                 .filter((instrument) =>
                   instrument.symbol
                     ?.toLowerCase()
-                    .includes(input?.toLowerCase() ?? "")
+                    .includes(input?.toLowerCase() ?? ""),
                 )
                 .map((instrument) => ({
                   name: instrument.symbol,
@@ -62,7 +62,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
               accountId: account.id,
               instrumentSymbol: symbol,
             }),
-          }))
+          })),
         );
         const table = new Table({
           head: ["Symbol", "Bid", "Ask", "Mid"],
@@ -88,7 +88,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
             {
               ...user,
               authorizationId: account.brokerage_authorization,
-            }
+            },
           );
 
           const instruments = await withDebouncedSpinner(
@@ -99,7 +99,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
                   slug: conn.data.brokerage?.slug!,
                 });
               return instrumentsResponse.data.instruments;
-            }
+            },
           );
           if (instruments == null || instruments.length === 0) {
             return undefined;
@@ -113,7 +113,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
                 .filter((instrument) =>
                   instrument.symbol
                     ?.toLowerCase()
-                    .includes(input?.toLowerCase() ?? "")
+                    .includes(input?.toLowerCase() ?? ""),
                 )
                 .map((instrument) => ({
                   name: instrument.symbol,
@@ -126,7 +126,7 @@ export function quoteCommand(snaptrade: Snaptrade): Command {
 
         if (!symbols) {
           console.error(
-            "No instruments found. See https://snaptrade.notion.site/66793431ad0b416489eaabaf248d0afb?v=241feaa69a1c80a6b2f9000cdee4883b&source=copy_link for brokers with available instruments."
+            "No instruments found. See https://snaptrade.notion.site/66793431ad0b416489eaabaf248d0afb?v=241feaa69a1c80a6b2f9000cdee4883b&source=copy_link for brokers with available instruments.",
           );
           return;
         }

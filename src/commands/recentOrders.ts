@@ -1,13 +1,13 @@
 import { Command } from "commander";
-import { Snaptrade } from "snaptrade-typescript-sdk";
+import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { displayOrders } from "../utils/displayOrders.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
 
-export function recentOrdersCommand(snaptrade: Snaptrade): Command {
+export function recentOrdersCommand(snaptrade: SnaptradeClient): Command {
   return new Command("recent-orders")
     .description(
-      "List the most recent orders (within last 24 hours) for a given account"
+      "List the most recent orders (within last 24 hours) for a given account",
     )
     .action(async (opts, command) => {
       const user = await loadOrRegisterUser(snaptrade);
