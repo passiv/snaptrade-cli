@@ -3,7 +3,6 @@ import { readFile, writeFile } from "fs/promises";
 import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
-const packageJson = JSON.parse(await readFile("package.json", "utf-8"));
 
 const { stdout: helpOutput } = await execFileAsync(
   process.execPath,
