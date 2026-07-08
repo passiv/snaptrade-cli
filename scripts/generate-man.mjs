@@ -1,5 +1,5 @@
 import { execFile } from "child_process";
-import { readFile, writeFile } from "fs/promises";
+import { writeFile } from "fs/promises";
 import { promisify } from "util";
 
 const execFileAsync = promisify(execFile);
