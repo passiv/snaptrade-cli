@@ -10,6 +10,7 @@
   "files": [
     "bin",
     "dist",
+    "man",
     "package.json",
     "README.md"
   ],
@@ -21,7 +22,7 @@
     "verify": "npm run lint && npm test && npm run build",
     "prebuild": "node scripts/prepare-build.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "mkdir -p dist/utils && cp src/utils/oauthConstants.cjs dist/utils/",
+    "postbuild": "mkdir -p dist/utils man && cp src/utils/oauthConstants.cjs dist/utils/ && node scripts/generate-man.mjs",
     "release": "rm -rf dist && rm -rf build && npm run build && npm version patch && git push && npm publish"
   },
   "repository": "https://github.com/passiv/snaptrade-cli",
@@ -52,5 +53,6 @@
     "typescript-eslint": "^8.14.0",
     "vitest": "^4.1.8"
   },
-  "type": "module"
+  "type": "module",
+  "man": "./man/snaptrade.1"
 }
