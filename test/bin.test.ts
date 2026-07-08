@@ -43,4 +43,9 @@ describe("CLI invocation", () => {
       }),
     ).resolves.toMatchObject({ stderr: "" });
   });
+
+  it("advertises the generated man page in package metadata", () => {
+    expect(packageJson.man).toBe("./man/snaptrade.1");
+    expect(packageJson.files).toContain("man");
+  });
 });
