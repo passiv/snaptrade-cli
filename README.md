@@ -122,28 +122,28 @@ Usage: snaptrade [options] [command]
 CLI tool to interact with SnapTrade API
 
 Options:
-  -V, --version              output the version number
-  --useLastAccount           Use the last selected account for account specific commands (default: false)
-  --verbose                  Enable verbose output (default: false)
-  -h, --help                 display help for command
+  -V, --version                       output the version number
+  --useLastAccount                    Use the last selected account for account specific commands (default: false)
+  --verbose                           Enable verbose output (default: false)
+  -h, --help                          display help for command
 
 Commands:
-  status                     Get current status of your SnapTrade authentication
-  brokers                    List all brokers available to connect
-  connect [options]          Establish a new broker connection
-  reconnect [connectionId]   Re-establish an existing disabled connection
-  disconnect [connectionId]  Remove an existing broker connection
-  connections                List all broker connections
-  accounts                   List all connected accounts
-  positions [options]        List all positions for a given account
-  recent-orders              List the most recent orders (within last 24 hours) for a given account
-  orders                     List all orders for a given account
-  instruments                Get a list of available instruments from a broker
-  quote [symbols]            Get the latest market quote
-  trade [options]            Execute different types of trades (equity, options, crypto)
-  cancel-order [options]     Cancel an existing order
-  profiles                   Manage SnapTrade CLI profiles
-  help [command]             display help for command
+  status                              Get current status of your SnapTrade authentication
+  brokers                             List all brokers available to connect
+  connect [options]                   Establish a new broker connection
+  reconnect [options] [connectionId]  Re-establish a disabled connection, or change an existing connection's access level
+  disconnect [connectionId]           Remove an existing broker connection
+  connections                         List all broker connections
+  accounts                            List all connected accounts
+  positions [options]                 List all positions for a given account
+  recent-orders                       List the most recent orders (within last 24 hours) for a given account
+  orders                              List all orders for a given account
+  instruments                         Get a list of available instruments from a broker
+  quote [symbols]                     Get the latest market quote
+  trade [options]                     Execute different types of trades (equity, options, crypto)
+  cancel-order [options]              Cancel an existing order
+  profiles                            Manage SnapTrade CLI profiles
+  help [command]                      display help for command
 ```
 
 ## ☕️ Development
