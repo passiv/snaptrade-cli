@@ -57,15 +57,25 @@ export function reconnectCommand(snaptrade: SnaptradeClient): Command {
           await snaptrade.connections.listBrokerageAuthorizations(user)
         ).data;
 
-        // Disabled connections need repair. Read-only ones are healthy but can't
-        // trade, so only offer them when the user asked to upgrade — and only
-        // where the brokerage actually supports trading.
-        const candidates = connections.filter((conn) =>
-          connectionType === "trade"
-            ? conn.brokerage?.allows_trading !== false &&
-              (conn.disabled || conn.type === "read")
-            : conn.disabled,
-        );
+        // Disabled connections always need repair. Healthy ones are only worth
+        // offering when the requested access level differs from what they
+        // already have — and an upgrade additionally needs a brokerage that can
+        // actually trade.
+        const candidates = connections.filter((conn) => {
+          if (conn.disabled) {
+            return (
+              connectionType !== "trade" ||
+              conn.brokerage?.allows_trading !== false
+            );
+          }
+          if (!connectionType || conn.type === connectionType) {
+            return false;
+          }
+          return (
+            connectionType !== "trade" ||
+            conn.brokerage?.allows_trading !== false
+          );
+        });
 
         if (candidates.length === 0) {
           return null;
@@ -79,9 +89,11 @@ export function reconnectCommand(snaptrade: SnaptradeClient): Command {
           message:
             connectionType === "trade"
               ? "Select a connection to upgrade to trading"
-              : "Select a connection to reconnect",
+              : connectionType === "read"
+                ? "Select a connection to make read-only"
+                : "Select a connection to reconnect",
           choices: candidates.map((conn) => ({
-            name: `${conn.brokerage?.display_name}${conn.disabled ? " (disabled)" : " (read-only)"}`,
+            name: `${conn.brokerage?.display_name}${conn.disabled ? " (disabled)" : conn.type === "read" ? " (read-only)" : " (trade)"}`,
             value: conn.id,
           })),
         });
@@ -91,7 +103,9 @@ export function reconnectCommand(snaptrade: SnaptradeClient): Command {
         console.log(
           connectionType === "trade"
             ? "No connections found that need upgrading to trading."
-            : `No disabled connections found, therefore there's no need to reconnect. To give an existing connection trading access, run ${chalk.green("snaptrade reconnect --connection-type trade")}.`,
+            : connectionType === "read"
+              ? "No connections found that need changing to read-only."
+              : `No disabled connections found, therefore there's no need to reconnect. To give an existing connection trading access, run ${chalk.green("snaptrade reconnect --connection-type trade")}.`,
         );
         return;
       }

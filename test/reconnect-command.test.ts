@@ -193,6 +193,78 @@ describe("reconnect command", () => {
     });
   });
 
+  it("offers active trade connections when downgrading to read", async () => {
+    await usePersonalProfile();
+    const handleConnect = vi.fn();
+    vi.doMock("../src/utils/connect.ts", () => ({ handleConnect }));
+
+    const snaptrade = createMockSnaptrade();
+    vi.mocked(
+      snaptrade.connections.listBrokerageAuthorizations,
+    ).mockResolvedValue({
+      data: [
+        {
+          id: "conn-trade",
+          type: "trade",
+          disabled: false,
+          brokerage: { display_name: "Alpaca", allows_trading: true },
+        },
+        // Already read-only: nothing to change, so it must not be a candidate.
+        {
+          id: "conn-read",
+          type: "read",
+          disabled: false,
+          brokerage: { display_name: "Moomoo", allows_trading: true },
+        },
+      ],
+    });
+
+    const { reconnectCommand } = await import("../src/commands/reconnect.ts");
+    await parseCommand(reconnectCommand(snaptrade), [
+      "reconnect",
+      "--connection-type",
+      "read",
+    ]);
+
+    expect(handleConnect.mock.calls[0][0]).toMatchObject({
+      existingConnectionId: "conn-trade",
+      connectionType: "read",
+    });
+  });
+
+  it("does not offer connections that already have the requested level", async () => {
+    await usePersonalProfile();
+    const handleConnect = vi.fn();
+    vi.doMock("../src/utils/connect.ts", () => ({ handleConnect }));
+
+    const snaptrade = createMockSnaptrade();
+    vi.mocked(
+      snaptrade.connections.listBrokerageAuthorizations,
+    ).mockResolvedValue({
+      data: [
+        {
+          id: "conn-trade",
+          type: "trade",
+          disabled: false,
+          brokerage: { display_name: "Alpaca", allows_trading: true },
+        },
+      ],
+    });
+    const consoleOutput = captureConsole();
+
+    const { reconnectCommand } = await import("../src/commands/reconnect.ts");
+    await parseCommand(reconnectCommand(snaptrade), [
+      "reconnect",
+      "--connection-type",
+      "trade",
+    ]);
+
+    expect(handleConnect).not.toHaveBeenCalled();
+    expect(stripAnsi(consoleOutput.log.join("\n"))).toContain(
+      "No connections found that need upgrading to trading.",
+    );
+  });
+
   it("rejects an unknown connection type", async () => {
     await usePersonalProfile();
     vi.doMock("../src/utils/connect.ts", () => ({ handleConnect: vi.fn() }));
