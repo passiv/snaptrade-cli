@@ -201,8 +201,79 @@ describe("account list and selection", () => {
       }),
     ).rejects.toThrow("process.exit");
     expect(exitSpy).toHaveBeenCalledWith(1);
-    expect(stripAnsi(consoleOutput.error.join("\n"))).toContain(
-      "No valid accounts available. Connect an account with snaptrade connect",
-    );
+    const output = stripAnsi(consoleOutput.error.join("\n"));
+    expect(output).toContain("No valid accounts available.");
+    expect(output).toContain("• Crypto trading not supported");
+    expect(output).toContain("snaptrade connections");
+    // Nothing here is disabled or read-only, so neither remedy should be offered.
+    expect(output).not.toContain("--connection-type trade");
+    expect(output).not.toContain("Repair your disabled connections");
+  });
+
+  it("points read-only rejections at the connection-type upgrade, not at reconnect-repair", async () => {
+    useIsolatedConfigHome();
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {
+      throw new Error("process.exit");
+    });
+    vi.doMock("../src/utils/user.ts", () => ({
+      loadOrRegisterUser: vi.fn().mockResolvedValue({}),
+    }));
+    vi.doMock("../src/utils/accounts.ts", () => ({
+      listAccountsByConnection: vi.fn().mockResolvedValue([
+        {
+          connection: {
+            id: "read-only",
+            disabled: false,
+            type: "read",
+            brokerage: { name: "Alpaca", slug: "ALPACA" },
+          },
+          accounts: [
+            {
+              id: "acct-read",
+              name: "Alpaca Margin",
+              institution_name: "Alpaca",
+              balance: { total: { amount: 1, currency: "USD" } },
+            },
+          ],
+        },
+        {
+          connection: {
+            id: "no-mleg",
+            disabled: false,
+            type: "trade",
+            brokerage: { name: "Questrade", slug: "QUESTRADE" },
+          },
+          accounts: [
+            {
+              id: "acct-qt",
+              name: "Individual Margin",
+              institution_name: "Questrade",
+              balance: { total: { amount: 2, currency: "CAD" } },
+            },
+          ],
+        },
+      ]),
+    }));
+    vi.doMock("@inquirer/prompts", () => ({
+      select: vi.fn(),
+    }));
+    const consoleOutput = captureConsole();
+
+    const { selectAccount } = await import("../src/utils/selectAccount.ts");
+
+    await expect(
+      selectAccount({
+        snaptrade: createMockSnaptrade(),
+        useLastAccount: false,
+        context: "option_trade",
+      }),
+    ).rejects.toThrow("process.exit");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    const output = stripAnsi(consoleOutput.error.join("\n"));
+    expect(output).toContain("• Read-only connection");
+    expect(output).toContain("• Option trading not supported");
+    expect(output).toContain("snaptrade reconnect --connection-type trade");
+    // The old message sent read-only users to disabled-connection repair.
+    expect(output).not.toContain("Repair your disabled connections");
   });
 });

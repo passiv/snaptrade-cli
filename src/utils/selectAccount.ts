@@ -104,8 +104,33 @@ export async function selectAccount({
         ("disabled" in choice && choice.disabled),
     )
   ) {
+    // Every account was rejected. The per-account reasons are already computed
+    // above, so report them instead of guessing at a remedy — the most common
+    // cause is a read-only connection, which `reconnect` alone will not fix.
+    const reasons = new Set(
+      choices.flatMap((choice) =>
+        choice instanceof Separator || typeof choice.disabled !== "string"
+          ? []
+          : [choice.disabled],
+      ),
+    );
+
+    console.error("No valid accounts available.");
+    for (const reason of reasons) {
+      console.error(`  • ${reason}`);
+    }
+    if (reasons.has("Read-only connection")) {
+      console.error(
+        `\nGive an existing connection trading access with ${chalk.green(`snaptrade reconnect --connection-type trade`)}.`,
+      );
+    }
+    if (reasons.has("Connection disabled")) {
+      console.error(
+        `\nRepair your disabled connections with ${chalk.green(`snaptrade reconnect`)}.`,
+      );
+    }
     console.error(
-      `No valid accounts available. Connect an account with ${chalk.green(`snaptrade connect`)} or fix your disabled connections with ${chalk.green(`snaptrade reconnect`)}.`,
+      `\nRun ${chalk.green(`snaptrade connections`)} to review them, or ${chalk.green(`snaptrade connect`)} to add another.`,
     );
     process.exit(1);
   }

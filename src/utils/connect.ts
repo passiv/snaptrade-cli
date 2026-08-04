@@ -8,7 +8,7 @@ export async function handleConnect({
   user,
   existingConnectionId,
   brokerSlug,
-  connectionType = "trade-if-available",
+  connectionType,
 }: {
   snaptrade: SnaptradeClient;
   user: User;
@@ -16,12 +16,16 @@ export async function handleConnect({
   brokerSlug?: string;
   connectionType?: "read" | "trade-if-available" | "trade";
 }) {
+  // On a reconnect an unspecified type means "keep what the connection already
+  // has" — the API preserves it — so only default for brand new connections.
+  const requestedConnectionType =
+    connectionType ?? (existingConnectionId ? undefined : "trade-if-available");
+
   const loginResponse = await snaptrade.authentication.loginSnapTradeUser({
     ...user,
     reconnect: existingConnectionId,
     broker: brokerSlug,
-    // Don't modify connection type if reconnecting
-    connectionType: existingConnectionId ? undefined : connectionType,
+    connectionType: requestedConnectionType,
   });
   if (
     !("redirectURI" in loginResponse.data) ||
