@@ -18,7 +18,7 @@ snaptrade
 
 When you run `snaptrade <command>` for the first time, the CLI asks how you want to authenticate:
 
-- **Personal SnapTrade account**: sign in with SnapTrade OAuth in your browser, or enter your SnapTrade client ID and consumer key. OAuth profiles store refreshable browser tokens locally. Personal client ID and consumer key profiles store only those credentials; the CLI does not register or save a SnapTrade user for them.
+- **Personal SnapTrade account**: sign in with SnapTrade OAuth in your browser, or enter your SnapTrade client ID and consumer key. OAuth sign-in requests `openid profile email read trade` and stores refreshable browser tokens locally. Personal client ID and consumer key profiles store only those credentials; the CLI does not register or save a SnapTrade user for them.
 - **Commercial SnapTrade account**: enter your SnapTrade client ID and consumer key. The CLI stores those credentials locally and creates a SnapTrade user when needed.
 
 <img src="docs/snaptrade-start.png" />
@@ -28,7 +28,7 @@ When you run `snaptrade <command>` for the first time, the CLI asks how you want
 Once authentication is set, call `snaptrade connect` to connect a new account. For Commercial client ID and consumer key profiles, this will register a new SnapTrade user if one does not exist yet. For Personal OAuth and Personal client ID and consumer key profiles, the CLI uses the authenticated Personal user implicitly. In all cases, the command opens the Connection Portal in your default browser. Pick a broker of your choice to finish the connection process. If you don't have/want to use a live account, you can register an Alpaca paper account with just an email and choose Alpaca Paper in the Connection Portal.
 
 > [!NOTE]
-> Personal OAuth profiles currently support read and connection-management commands. Trading and write operations require SnapTrade API-key authentication, either with Personal API keys where available or Commercial API credentials.
+> New Personal OAuth sign-ins request `trade` alongside identity and read scopes. SnapTrade may grant fewer scopes than requested; `snaptrade status` shows those confirmed in the token response. Existing read-only OAuth profiles will open browser consent again before a trading command. Trading also requires a brokerage connection and account with trading access; the CLI checks the OAuth grant before sending an order.
 
 <img src="docs/snaptrade-connect.png" />
 <img src="docs/snaptrade-select.png" />
@@ -49,7 +49,9 @@ You can also specify the broker directly with `snaptrade connect --broker <broke
 
 ---
 
-Use `snaptrade status` to check the active profile. Personal OAuth profiles show the authenticated SnapTrade email. Personal client ID and consumer key profiles show the client ID and credential status. Commercial profiles show the SnapTrade user, client ID, credential status, and trading access.
+Use `snaptrade status` to check the active profile. Personal OAuth profiles show the authenticated SnapTrade email, saved OAuth scopes, and whether those scopes include `trade`. Personal client ID and consumer key profiles show the client ID and credential status. Commercial profiles show the SnapTrade user, client ID, credential status, and trading access.
+
+Run `snaptrade logout` to sign out of the active Personal OAuth profile. The CLI attempts to revoke its tokens, clears its locally stored OAuth credentials, and keeps the profile for a later sign-in. The next authenticated command will prompt you to sign in again.
 
 Profiles are managed with `snaptrade profiles`:
 
@@ -129,6 +131,7 @@ Options:
 
 Commands:
   status                     Get current status of your SnapTrade authentication
+  logout                     Sign out of the active Personal OAuth profile
   brokers                    List all brokers available to connect
   connect [options]          Establish a new broker connection
   reconnect [connectionId]   Re-establish an existing disabled connection

@@ -19,6 +19,10 @@ export function statusCommand(snaptrade: SnaptradeClient): Command {
         if (oauthEmail) {
           console.log(`SnapTrade email: ${chalk.green(oauthEmail)}`);
         }
+        const scopes = profile.oauthScope?.split(/\s+/).filter(Boolean) ?? [];
+        console.log(
+          `OAuth scopes (saved): ${scopes.length ? scopes.join(", ") : "unknown"}`,
+        );
         return;
       }
 

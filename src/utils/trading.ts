@@ -34,9 +34,23 @@ export async function handlePostTrade(
     `You can also use ${chalk.green("snaptrade recent-orders")} to view recent orders.`,
   );
 
-  // Force an account refresh to get the latest account data after a trade execution or cancellation
-  await snaptrade.connections.refreshBrokerageAuthorization({
-    ...user,
-    authorizationId: account.brokerage_authorization,
-  });
+  // Read the specific order directly. Trading connections provide live data;
+  // manual connection refresh is neither needed nor available on real-time plans.
+  const orderId = response.data.brokerage_order_id;
+  if (!orderId) return;
+
+  try {
+    const order = await snaptrade.accountInformation.getUserAccountOrderDetail({
+      ...user,
+      accountId: account.id,
+      brokerage_order_id: orderId,
+    });
+    console.log(`Current order status: ${order.data.status ?? "unknown"}`);
+  } catch (error) {
+    const status = (error as { status?: unknown })?.status;
+    const statusLabel = typeof status === "number" ? ` (HTTP ${status})` : "";
+    console.warn(
+      `⚠️ Order status lookup failed${statusLabel}. The order request was accepted; check ${chalk.green("snaptrade recent-orders")} for its latest status.`,
+    );
+  }
 }

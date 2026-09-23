@@ -158,6 +158,57 @@ describe("account list and selection", () => {
     expect(validChoice.disabled).toBe(false);
   });
 
+  it("allows Robinhood Agentic accounts in the option trade selector", async () => {
+    useIsolatedConfigHome();
+    vi.doMock("../src/utils/user.ts", () => ({
+      loadOrRegisterUser: vi.fn().mockResolvedValue({
+        userId: "user",
+        userSecret: "secret",
+      }),
+    }));
+    vi.doMock("../src/utils/accounts.ts", () => ({
+      listAccountsByConnection: vi.fn().mockResolvedValue([
+        {
+          connection: {
+            id: "robinhood-agentic",
+            disabled: false,
+            type: "trade",
+            brokerage: {
+              name: "Robinhood Agentic",
+              slug: "ROBINHOOD-AGENTIC",
+            },
+          },
+          accounts: [
+            {
+              id: "robinhood-account",
+              name: "Robinhood account",
+              institution_name: "Robinhood Agentic",
+              balance: { total: { amount: 100, currency: "USD" } },
+            },
+          ],
+        },
+      ]),
+    }));
+
+    const selectMock = vi.fn().mockResolvedValue("robinhood-account");
+    vi.doMock("@inquirer/prompts", () => ({ select: selectMock }));
+
+    const { selectAccount } = await import("../src/utils/selectAccount.ts");
+    await expect(
+      selectAccount({
+        snaptrade: createMockSnaptrade(),
+        useLastAccount: false,
+        context: "option_trade",
+      }),
+    ).resolves.toMatchObject({ id: "robinhood-account" });
+
+    const choices = selectMock.mock.calls[0][0].choices;
+    const robinhoodChoice = choices.find(
+      (choice: { value?: string }) => choice.value === "robinhood-account",
+    );
+    expect(robinhoodChoice.disabled).toBe(false);
+  });
+
   it("prints the no-valid-accounts message when crypto gating rejects all choices", async () => {
     useIsolatedConfigHome();
     const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => {

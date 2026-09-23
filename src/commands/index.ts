@@ -15,12 +15,14 @@ import { brokersCommand } from "./brokers.ts";
 import { ordersCommand } from "./orders.ts";
 import { instrumentsCommand } from "./instruments.ts";
 import { profilesCommand } from "./profiles.ts";
+import { logoutCommand } from "./logout.ts";
 
 export function registerCommands(
   program: Command,
   snaptrade: SnaptradeClient,
 ): void {
   program.addCommand(statusCommand(snaptrade));
+  program.addCommand(logoutCommand());
   program.addCommand(brokersCommand(snaptrade));
   program.addCommand(connectCommand(snaptrade));
   program.addCommand(reconnectCommand(snaptrade));

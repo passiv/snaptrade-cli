@@ -18,11 +18,12 @@ export type User =
 
 export async function loadOrRegisterUser(
   snaptrade: SnaptradeClient,
+  requiredScope: "read" | "trade" = "read",
 ): Promise<User> {
   const profile = getProfile();
 
   if (profile.authMode === "oauth") {
-    await ensureOAuthLogin();
+    await ensureOAuthLogin(requiredScope);
     return {};
   }
 
@@ -36,7 +37,7 @@ export async function loadOrRegisterUser(
     saveProfile(authChoice);
 
     if (authChoice.authMode === "oauth") {
-      await ensureOAuthLogin();
+      await ensureOAuthLogin(requiredScope);
       return {};
     }
 

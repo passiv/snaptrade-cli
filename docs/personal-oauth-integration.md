@@ -10,13 +10,13 @@ Personal OAuth is different from a Commercial SnapTrade API-key integration:
 - API calls are authorized with a Bearer token.
 - The authenticated Personal user is implied by the OAuth token.
 
-Personal OAuth currently supports read and connection-management workflows. Trading and other write operations require SnapTrade API-key authentication, either with Personal API keys where available or Commercial API credentials.
+Personal OAuth supports trading when the OAuth client, user grant, brokerage connection, and account have trading access. The CLI requests `openid profile email read trade` at sign-in and verifies that the token response confirms `trade` before sending an order. SnapTrade can narrow the requested scope set based on the OAuth client's eligibility; requesting `trade` alone does not make it grantable. Existing read-only grants need a new browser authorization; refreshing an access token does not add scopes.
 
 ## When To Use Personal OAuth
 
 Use Personal OAuth when your app is intended for individual SnapTrade users who already have, or can create, a Personal SnapTrade account.
 
-Use API-key authentication when your app needs trading or other write access. Personal API keys can support trading for Personal users, while Commercial API keys are for apps that manage SnapTrade users themselves and need server-side user registration.
+Use API-key authentication when your app needs access outside its OAuth grant. Personal API keys can support trading for Personal users, while Commercial API keys are for apps that manage SnapTrade users themselves and need server-side user registration.
 
 ## High-Level Flow
 
@@ -72,7 +72,7 @@ const authorizeUrl = new URL(authorizationEndpoint);
 authorizeUrl.searchParams.set("response_type", "code");
 authorizeUrl.searchParams.set("client_id", SNAPTRADE_OAUTH_CLIENT_ID);
 authorizeUrl.searchParams.set("redirect_uri", redirectUri);
-authorizeUrl.searchParams.set("scope", "read");
+authorizeUrl.searchParams.set("scope", "openid profile email read trade");
 authorizeUrl.searchParams.set("state", state);
 authorizeUrl.searchParams.set("code_challenge", codeChallenge);
 authorizeUrl.searchParams.set("code_challenge_method", "S256");
@@ -156,7 +156,7 @@ const token = await fetch(tokenEndpoint, {
 }).then((response) => response.json());
 ```
 
-Update the stored access token, expiry, scope, subject metadata, and refresh token. If the refresh response does not include a new refresh token, keep the existing refresh token.
+Update the stored access token, expiry, scope, subject metadata, and refresh token. If the refresh response omits scope or a new refresh token, keep the existing values. A refresh cannot upgrade a read-only grant to trading; repeat the authorization-code flow with the new scope set.
 
 If an API request returns `401`, force one refresh and retry the request once. If the retry also fails, send the user through OAuth login again.
 

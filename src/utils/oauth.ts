@@ -15,10 +15,12 @@ const oauthConstants = require("./oauthConstants.cjs") as {
 export const { OAUTH_CLIENT_ID, OAUTH_SDK_PLACEHOLDER_CREDENTIAL } =
   oauthConstants;
 const OAUTH_REDIRECT_HOST = "127.0.0.1";
-const OAUTH_REDIRECT_PORT = 36987;
+const OAUTH_REDIRECT_PORT = Number(
+  process.env.SNAPTRADE_OAUTH_REDIRECT_PORT ?? 36987,
+);
 const OAUTH_REDIRECT_PATH = "/oauth/callback";
 const OAUTH_REDIRECT_URI = `http://${OAUTH_REDIRECT_HOST}:${OAUTH_REDIRECT_PORT}${OAUTH_REDIRECT_PATH}`;
-const OAUTH_SCOPE = "read";
+const OAUTH_SCOPE = "openid profile email read trade";
 const OAUTH_EXPIRY_SKEW_MS = 60_000;
 
 type OAuthMetadata = {
@@ -284,11 +286,20 @@ export async function loginWithOAuth(): Promise<void> {
     oauthAccessToken: token.access_token,
     oauthRefreshToken: token.refresh_token,
     oauthExpiresAt: expiresAt(token.expires_in),
+    // The server can narrow the requested scopes for this OAuth client.
+    // Only record scopes that the token response confirms were granted.
     oauthScope: token.scope,
     oauthSubject: subjectFromToken(token),
     oauthEmail: emailFromToken(token),
   });
   console.log(chalk.green("SnapTrade OAuth login complete.\n"));
+  if (!token.scope?.split(/\s+/).includes("trade")) {
+    console.warn(
+      chalk.yellow(
+        "SnapTrade did not confirm the trade scope for this OAuth app. Trading commands remain unavailable.",
+      ),
+    );
+  }
 }
 
 export async function revokeOAuthTokensForProfile(
@@ -354,14 +365,17 @@ export async function refreshOAuthToken(force = false): Promise<string | null> {
     oauthAccessToken: token.access_token,
     oauthRefreshToken: token.refresh_token ?? profile.oauthRefreshToken,
     oauthExpiresAt: expiresAt(token.expires_in),
-    oauthScope: token.scope,
+    // Refresh responses may omit scope; the existing grant still applies.
+    oauthScope: token.scope ?? profile.oauthScope,
     oauthSubject: subjectFromToken(token) ?? profile.oauthSubject,
     oauthEmail: emailFromToken(token) ?? profile.oauthEmail,
   });
   return token.access_token;
 }
 
-export async function ensureOAuthLogin(): Promise<void> {
+export async function ensureOAuthLogin(
+  requiredScope: "read" | "trade" = "read",
+): Promise<void> {
   let token: string | null = null;
   try {
     token = await refreshOAuthToken();
@@ -383,5 +397,24 @@ export async function ensureOAuthLogin(): Promise<void> {
       process.exit(1);
     }
     await loginWithOAuth();
+  } else if (
+    requiredScope === "trade" &&
+    !getProfile().oauthScope?.split(/\s+/).includes("trade")
+  ) {
+    console.log(
+      chalk.yellow(
+        "Trading requires an updated SnapTrade OAuth grant. Opening consent in your browser.",
+      ),
+    );
+    await loginWithOAuth();
+  }
+
+  if (
+    requiredScope === "trade" &&
+    !getProfile().oauthScope?.split(/\s+/).includes("trade")
+  ) {
+    throw new Error(
+      "SnapTrade OAuth did not grant trading access to this profile.",
+    );
   }
 }

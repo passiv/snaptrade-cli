@@ -3,7 +3,6 @@ import type { SnaptradeClient } from "../../utils/snaptradeClient.ts";
 import { cryptoCommand } from "./crypto.ts";
 import { equityCommand } from "./equity.ts";
 import { optionCommand } from "./option/index.ts";
-import { assertApiKeyProfileForWrite } from "../../utils/authMode.ts";
 
 export const ORDER_TYPES = ["Market", "Limit", "Stop", "StopLimit"] as const;
 export const TIME_IN_FORCE = ["Day", "GTC"] as const;
@@ -67,10 +66,6 @@ export function tradeCommand(snaptrade: SnaptradeClient): Command {
       "--replace <string>",
       "Replace an existing order. Provide the broker order ID to replace.",
     );
-
-  cmd.hook("preAction", () => {
-    assertApiKeyProfileForWrite("trade");
-  });
 
   cmd.addCommand(equityCommand(snaptrade));
   cmd.addCommand(optionCommand(snaptrade));

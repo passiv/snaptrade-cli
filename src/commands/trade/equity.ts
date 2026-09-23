@@ -21,7 +21,7 @@ export function equityCommand(snaptrade: SnaptradeClient): Command {
       "Notional amount. Either shares or notional must be provided.",
     )
     .action(async (opts, command) => {
-      const user = await loadOrRegisterUser(snaptrade);
+      const user = await loadOrRegisterUser(snaptrade, "trade");
 
       const {
         ticker,
@@ -118,7 +118,7 @@ export function equityCommand(snaptrade: SnaptradeClient): Command {
         });
 
         console.log("✅ Order submitted!");
-        handlePostTrade(snaptrade, response, account, user, "trade");
+        await handlePostTrade(snaptrade, response, account, user, "trade");
       } else {
         const response = await snaptrade.trading.replaceOrder({
           ...user,
@@ -135,7 +135,7 @@ export function equityCommand(snaptrade: SnaptradeClient): Command {
         });
 
         console.log("✅ Order replacement submitted!");
-        handlePostTrade(snaptrade, response, account, user, "replace");
+        await handlePostTrade(snaptrade, response, account, user, "replace");
       }
     });
 }

@@ -74,7 +74,7 @@ export async function processCommonOptionArgs(
   snaptrade: SnaptradeClient,
   command: Command,
 ): Promise<TradeArgs> {
-  const user = await loadOrRegisterUser(snaptrade);
+  const user = await loadOrRegisterUser(snaptrade, "trade");
 
   const optionCommand = command.parent;
   const tradeCommand = optionCommand?.parent;
@@ -308,7 +308,7 @@ export async function placeTrade(
   legs: Leg[],
   trade: TradeArgs,
 ) {
-  const user = await loadOrRegisterUser(snaptrade);
+  const user = await loadOrRegisterUser(snaptrade, "trade");
 
   const { ticker, orderType, limitPrice, action, tif, account, balance } =
     trade;
@@ -388,5 +388,5 @@ export async function placeTrade(
   });
 
   console.log("✅ Order submitted!");
-  handlePostTrade(snaptrade, response, account, user, "trade");
+  await handlePostTrade(snaptrade, response, account, user, "trade");
 }

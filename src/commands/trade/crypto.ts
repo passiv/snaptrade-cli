@@ -14,7 +14,7 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
       "The amount of the base currency to buy or sell.",
     )
     .action(async (opts, command) => {
-      const user = await loadOrRegisterUser(snaptrade);
+      const user = await loadOrRegisterUser(snaptrade, "trade");
 
       const { ticker, orderType, limitPrice, action, tif, replace } =
         command.parent.opts();
@@ -91,6 +91,6 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
       });
 
       console.log("✅ Order submitted!");
-      handlePostTrade(snaptrade, response, account, user, "trade");
+      await handlePostTrade(snaptrade, response, account, user, "trade");
     });
 }

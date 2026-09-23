@@ -27,6 +27,7 @@ type MockSnaptradeClient = SnaptradeClient & {
   accountInformation: SnaptradeClient["accountInformation"] & {
     listUserAccounts: AsyncMock;
     getUserAccountDetails: AsyncMock;
+    getUserAccountOrderDetail: AsyncMock;
     getAllAccountPositions: AsyncMock;
     getUserAccountBalance: AsyncMock;
   };
@@ -95,6 +96,7 @@ export function createMockSnaptrade(
     accountInformation: {
       listUserAccounts: vi.fn(),
       getUserAccountDetails: vi.fn(),
+      getUserAccountOrderDetail: vi.fn(),
       getAllAccountPositions: vi.fn(),
       getUserAccountBalance: vi.fn(),
     },

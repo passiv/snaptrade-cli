@@ -147,6 +147,7 @@ describe("status command output", () => {
         default: {
           authMode: "oauth",
           oauthEmail: "person@example.com",
+          oauthScope: "read",
         },
       },
     });
@@ -163,7 +164,34 @@ describe("status command output", () => {
     const output = stripAnsi(consoleOutput.log.join("\n"));
     expect(output).toContain("Authentication: Personal SnapTrade OAuth");
     expect(output).toContain("SnapTrade email: person@example.com");
+    expect(output).toContain("OAuth scopes (saved): read");
+    expect(output).not.toContain("Trading scope:");
     expect(snaptrade.referenceData.getPartnerInfo).not.toHaveBeenCalled();
+  });
+
+  it("lists every saved OAuth scope", async () => {
+    const configHome = useIsolatedConfigHome();
+    const { mkdirSync } = await import("fs");
+    mkdirSync(join(configHome, "snaptrade"), { recursive: true });
+    writeSettings(configHome, {
+      profiles: {
+        default: {
+          authMode: "oauth",
+          oauthScope: "read webhook trade",
+        },
+      },
+    });
+    vi.doMock("../src/utils/oauth.ts", () => ({
+      ensureOAuthLogin: vi.fn().mockResolvedValue(undefined),
+    }));
+
+    const { statusCommand } = await import("../src/commands/status.ts");
+    const consoleOutput = captureConsole();
+    await parseCommand(statusCommand(createMockSnaptrade()), ["status"]);
+
+    const output = stripAnsi(consoleOutput.log.join("\n"));
+    expect(output).toContain("OAuth scopes (saved): read, webhook, trade");
+    expect(output).not.toContain("Trading scope:");
   });
 
   it("prints commercial status details", async () => {
