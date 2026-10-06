@@ -31,9 +31,9 @@ async function setup() {
     ),
   }));
   const snaptrade = createMockSnaptrade();
-  snaptrade.trading.searchCryptocurrencyPairInstruments.mockResolvedValue({
-    data: { items: [{ symbol: "BTC-USD", base: "BTC", quote: "USD" }] },
-  });
+  snaptrade.trading.searchCryptocurrencyPairInstruments.mockRejectedValue(
+    new Error("Explicit ticker must skip catalog discovery"),
+  );
   snaptrade.trading.previewCryptoOrder.mockResolvedValue({
     data: { estimated_fee: { amount: "0", currency: "USD" } },
   });
@@ -88,6 +88,56 @@ describe("crypto trade preview and confirmation", () => {
     );
     expect(snaptrade.trading.placeCryptoOrder).not.toHaveBeenCalled();
     expect(output.log.join("\n")).toContain("❌ Trade cancelled by user.");
+  });
+
+  it("normalizes an explicit pair locally and never requests the full catalog", async () => {
+    const { run, snaptrade, output } = await setup();
+    await run(["--ticker", "btc-usd"]);
+    expect(
+      snaptrade.trading.searchCryptocurrencyPairInstruments,
+    ).not.toHaveBeenCalled();
+    expect(snaptrade.trading.previewCryptoOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instrument: { symbol: "BTC-USD", type: "CRYPTOCURRENCY_PAIR" },
+      }),
+    );
+    expect(stripAnsi(output.log.join("\n"))).toContain("BTC-USD");
+    expect(snaptrade.trading.getCryptocurrencyPairQuote).toHaveBeenCalledWith(
+      expect.objectContaining({ instrumentSymbol: "BTC-USD" }),
+    );
+  });
+
+  it.each(["BTC", "BTC/USD", "BTC-", "-USD", "BTC-USD-EXTRA", "BTC- USD"])(
+    "rejects malformed pair %s before any broker request",
+    async (ticker) => {
+      const { run, snaptrade, confirm } = await setup();
+      await expect(run(["--ticker", ticker])).rejects.toThrow("BASE-QUOTE");
+      expect(
+        snaptrade.trading.searchCryptocurrencyPairInstruments,
+      ).not.toHaveBeenCalled();
+      expect(snaptrade.trading.previewCryptoOrder).not.toHaveBeenCalled();
+      expect(confirm).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets the broker preview reject unavailable pairs without discovery or confirmation", async () => {
+    const { run, snaptrade, confirm } = await setup();
+    snaptrade.trading.previewCryptoOrder.mockRejectedValue(
+      new Error("Currency pair not supported"),
+    );
+    await expect(run(["--ticker", "BTC-USDC"])).rejects.toThrow(
+      "Currency pair not supported",
+    );
+    expect(
+      snaptrade.trading.searchCryptocurrencyPairInstruments,
+    ).not.toHaveBeenCalled();
+    expect(snaptrade.trading.previewCryptoOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instrument: { symbol: "BTC-USDC", type: "CRYPTOCURRENCY_PAIR" },
+      }),
+    );
+    expect(confirm).not.toHaveBeenCalled();
+    expect(snaptrade.trading.placeCryptoOrder).not.toHaveBeenCalled();
   });
 
   it.each([

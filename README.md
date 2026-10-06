@@ -167,7 +167,7 @@ To release a new version, run `npm run release`
 
 ### Crypto trade previews
 
-Use the account's available pair symbol and a decimal quantity of the base currency:
+Use the account's available pair symbol and a decimal quantity of the base currency. Trading parses the supplied `BASE-QUOTE` symbol locally and lets the broker preview validate availability, without a separate pair-catalog request. Run `snaptrade quote --crypto` without a symbol for interactive pair discovery:
 
 ```sh
 snaptrade quote --crypto BTC-USD

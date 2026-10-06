@@ -93,15 +93,42 @@ describe("quote command output", () => {
     expect(output).toContain("101");
   });
 
+  it("preserves interactive crypto pair discovery when no symbol is supplied", async () => {
+    vi.doMock("../src/utils/selectAccount.ts", () => ({
+      selectAccount: vi.fn().mockResolvedValue(cryptoAccount),
+    }));
+    const search = vi.fn().mockResolvedValue("BTC-USD");
+    vi.doMock("@inquirer/prompts", () => ({ search }));
+    const snaptrade = createMockSnaptrade();
+    snaptrade.trading.searchCryptocurrencyPairInstruments.mockResolvedValue({
+      data: { items: [{ symbol: "BTC-USD", base: "BTC", quote: "USD" }] },
+    });
+    snaptrade.trading.getCryptocurrencyPairQuote.mockResolvedValue({
+      data: { bid: "100", ask: "102" },
+    });
+    const { quoteCommand } = await import("../src/commands/quote.ts");
+    captureConsole();
+    await parseCommand(quoteCommand(snaptrade), ["quote", "--crypto"]);
+    expect(
+      snaptrade.trading.searchCryptocurrencyPairInstruments,
+    ).toHaveBeenCalledExactlyOnceWith({
+      userId: "user",
+      userSecret: "secret",
+      accountId: cryptoAccount.id,
+    });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(snaptrade.trading.getCryptocurrencyPairQuote).toHaveBeenCalledWith(
+      expect.objectContaining({ instrumentSymbol: "BTC-USD" }),
+    );
+  });
+
   it.each([false, true])(
     "preserves Robinhood stock routing and uses explicit crypto context (%s)",
     async (crypto) => {
-      const selectAccount = vi
-        .fn()
-        .mockResolvedValue({
-          ...equityAccount,
-          institution_name: "Robinhood Agentic Trading",
-        });
+      const selectAccount = vi.fn().mockResolvedValue({
+        ...equityAccount,
+        institution_name: "Robinhood Agentic Trading",
+      });
       vi.doMock("../src/utils/selectAccount.ts", () => ({ selectAccount }));
       const snaptrade = createMockSnaptrade();
       snaptrade.trading.getUserAccountQuotes.mockResolvedValue({ data: [] });

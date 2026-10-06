@@ -73,24 +73,20 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
       if (postOnly && orderType !== "Limit")
         throw new Error("--postOnly is only valid for Limit orders.");
 
+      const symbol = ticker.trim().toUpperCase();
+      if (!/^[^\s-]+-[^\s-]+$/.test(symbol))
+        throw new Error(
+          "Crypto --ticker must be a BASE-QUOTE pair, such as BTC-USD.",
+        );
+      const [base, quoteCurrency] = symbol.split("-");
+      const pair = { symbol, base, quote: quoteCurrency };
+
       const user = await loadOrRegisterUser(snaptrade, "trade");
       const account = await selectAccount({
         snaptrade,
         useLastAccount: command.parent.parent.opts().useLastAccount,
         context: "crypto_trade",
       });
-      const instruments =
-        await snaptrade.trading.searchCryptocurrencyPairInstruments({
-          ...user,
-          accountId: account.id,
-        });
-      const pair = instruments.data.items.find(
-        (item) => item.symbol?.toUpperCase() === ticker.toUpperCase(),
-      );
-      if (!pair?.symbol)
-        throw new Error(
-          "Crypto pair not found. Use snaptrade quote --crypto to find an available pair.",
-        );
       const order: CryptoOrderForm = {
         instrument: { symbol: pair.symbol, type: "CRYPTOCURRENCY_PAIR" },
         side: action,
@@ -111,7 +107,7 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
             .getCryptocurrencyPairQuote({
               ...user,
               accountId: account.id,
-              instrumentSymbol: pair.symbol!,
+              instrumentSymbol: pair.symbol,
             })
             .then((response) => response.data)
             .catch(() => undefined);
