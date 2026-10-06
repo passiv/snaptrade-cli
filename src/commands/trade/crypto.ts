@@ -33,15 +33,10 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
       "--amount <number>",
       "Amount of the base currency to buy or sell (fractional units supported)",
     )
-    .option(
-      "--postOnly",
-      "Reject a limit order if it would fill immediately (not supported by Robinhood)",
-      false,
-    )
     .action(async (opts, command) => {
       const { ticker, orderType, limitPrice, stopPrice, action, tif, replace } =
         command.parent.opts();
-      const { amount, postOnly } = opts;
+      const { amount } = opts;
       const timeInForce =
         command.parent.getOptionValueSource("tif") === "default" ? "GTC" : tif;
       const needsLimit = orderType === "Limit" || orderType === "StopLimit";
@@ -70,8 +65,6 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
         throw new Error(
           "--stopPrice is only valid for Stop or StopLimit orders.",
         );
-      if (postOnly && orderType !== "Limit")
-        throw new Error("--postOnly is only valid for Limit orders.");
 
       const symbol = ticker.trim().toUpperCase();
       if (!/^[^\s-]+-[^\s-]+$/.test(symbol))
@@ -95,7 +88,7 @@ export function cryptoCommand(snaptrade: SnaptradeClient): Command {
         amount,
         ...(needsLimit ? { limit_price: limitPrice } : {}),
         ...(needsStop ? { stop_price: stopPrice } : {}),
-        ...(orderType === "Limit" ? { post_only: postOnly } : {}),
+        ...(orderType === "Limit" ? { post_only: false } : {}),
       };
       const request = { ...user, accountId: account.id, ...order };
       const { preview, quote } = await withDebouncedSpinner(

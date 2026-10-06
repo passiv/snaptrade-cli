@@ -264,8 +264,6 @@ export function printCryptoTradePreview({
       : cryptoAmount(order.stop_price, pair.quote),
   );
   logLine("🔢", "Quantity", cryptoAmount(order.amount, pair.base));
-  if (order.post_only != null)
-    logLine("🔒", "Post Only", order.post_only ? "Yes" : "No");
   console.log();
   const price =
     order.limit_price ?? (order.side === "BUY" ? quote?.ask : quote?.bid);

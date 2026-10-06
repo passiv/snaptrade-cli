@@ -79,6 +79,7 @@ describe("crypto trade preview and confirmation", () => {
       expect(text).toMatch(/Est\. Fee\s+0 USD/);
       expect(text).toContain("GTC");
       expect(text).not.toContain("[object Object]");
+      expect(text).not.toContain("Post Only");
       expect(snaptrade.trading.placeCryptoOrder).not.toHaveBeenCalled();
       return false;
     });
@@ -88,6 +89,15 @@ describe("crypto trade preview and confirmation", () => {
     );
     expect(snaptrade.trading.placeCryptoOrder).not.toHaveBeenCalled();
     expect(output.log.join("\n")).toContain("❌ Trade cancelled by user.");
+  });
+
+  it("does not expose a post-only option in crypto help", async () => {
+    const { snaptrade } = await setup();
+    const { tradeCommand } = await import("../src/commands/trade/index.ts");
+    const crypto = tradeCommand(snaptrade).commands.find(
+      (command) => command.name() === "crypto",
+    )!;
+    expect(crypto.helpInformation()).not.toContain("postOnly");
   });
 
   it("normalizes an explicit pair locally and never requests the full catalog", async () => {
@@ -158,9 +168,10 @@ describe("crypto trade preview and confirmation", () => {
   ])(
     "previews and submits identical %s parameters once after confirmation",
     async (orderType, prices, type, fields) => {
-      const { run, snaptrade, confirm } = await setup();
+      const { run, snaptrade, confirm, output } = await setup();
       confirm.mockResolvedValue(true);
       await run(["--orderType", orderType as string, ...(prices as string[])]);
+      expect(stripAnsi(output.log.join("\n"))).not.toContain("Post Only");
       const request = {
         ...user,
         accountId: account.id,
