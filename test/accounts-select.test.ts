@@ -55,7 +55,10 @@ describe("account list and selection", () => {
         accounts: [{ id: "acct-2", brokerage_authorization: "conn-2" }],
       },
       {
-        connection: { id: "conn-3", brokerage: { name: "Empty", slug: "EMPTY" } },
+        connection: {
+          id: "conn-3",
+          brokerage: { name: "Empty", slug: "EMPTY" },
+        },
         accounts: [],
       },
     ]);
@@ -208,6 +211,128 @@ describe("account list and selection", () => {
     );
     expect(robinhoodChoice.disabled).toBe(false);
   });
+
+  it.each([
+    [true, false, "trade", false],
+    [false, false, "trade", "Crypto trading not supported"],
+    [true, true, "trade", "Connection disabled"],
+    [true, false, "read", "Read-only connection"],
+  ])(
+    "gates mixed crypto accounts using live capabilities (%s, %s, %s)",
+    async (enabled, disabled, type, reason) => {
+      useIsolatedConfigHome();
+      vi.doMock("../src/utils/user.ts", () => ({
+        loadOrRegisterUser: vi
+          .fn()
+          .mockResolvedValue({ userId: "user", userSecret: "secret" }),
+      }));
+      const acct = {
+        id: "mixed",
+        name: "Mixed",
+        institution_name: "Robinhood Agentic Trading",
+        balance: { total: { amount: 1, currency: "USD" } },
+      };
+      vi.doMock("../src/utils/accounts.ts", () => ({
+        listAccountsByConnection: vi.fn().mockResolvedValue([
+          {
+            connection: {
+              disabled,
+              type,
+              brokerage: {
+                slug: "ROBINHOOD-AGENTIC",
+                name: "Robinhood",
+                allows_cryptocurrency_and_regular_securities: enabled,
+              },
+            },
+            accounts: [acct],
+          },
+          {
+            connection: {
+              type: "trade",
+              brokerage: { slug: "COINBASE", name: "Coinbase" },
+            },
+            accounts: [{ ...acct, id: "valid" }],
+          },
+        ]),
+      }));
+      const select = vi.fn().mockResolvedValue("valid");
+      vi.doMock("@inquirer/prompts", () => ({ select }));
+      const { selectAccount } = await import("../src/utils/selectAccount.ts");
+      await selectAccount({
+        snaptrade: createMockSnaptrade(),
+        useLastAccount: false,
+        context: "crypto_trade",
+      });
+      expect(
+        select.mock.calls[0][0].choices.find(
+          (choice: { value?: string }) => choice.value === "mixed",
+        ).disabled,
+      ).toBe(reason);
+    },
+  );
+
+  it.each([true, false])(
+    "rechecks live crypto capability before reusing a saved mixed account (%s)",
+    async (enabled) => {
+      useIsolatedConfigHome();
+      vi.doMock("../src/utils/user.ts", () => ({
+        loadOrRegisterUser: vi
+          .fn()
+          .mockResolvedValue({ userId: "user", userSecret: "secret" }),
+      }));
+      const acct = {
+        id: "saved",
+        brokerage_authorization: "auth",
+        name: "Robinhood",
+        balance: { total: { amount: 1, currency: "USD" } },
+      };
+      vi.doMock("../src/utils/accounts.ts", () => ({
+        listAccountsByConnection: vi
+          .fn()
+          .mockResolvedValue([
+            {
+              connection: {
+                type: "trade",
+                brokerage: { name: "Coinbase", slug: "COINBASE" },
+              },
+              accounts: [{ ...acct, id: "fallback" }],
+            },
+          ]),
+      }));
+      const select = vi.fn().mockResolvedValue("fallback");
+      vi.doMock("@inquirer/prompts", () => ({ select }));
+      const { saveProfile } = await import("../src/utils/settings.ts");
+      saveProfile({ lastAccountId: "saved" });
+      const snaptrade = createMockSnaptrade();
+      snaptrade.accountInformation.getUserAccountDetails.mockResolvedValue({
+        data: acct,
+      });
+      snaptrade.connections.detailBrokerageAuthorization.mockResolvedValue({
+        data: {
+          type: "trade",
+          brokerage: {
+            slug: "ROBINHOOD-AGENTIC",
+            allows_cryptocurrency_and_regular_securities: enabled,
+          },
+        },
+      });
+      captureConsole();
+      const { selectAccount } = await import("../src/utils/selectAccount.ts");
+      await expect(
+        selectAccount({
+          snaptrade,
+          useLastAccount: true,
+          context: "crypto_trade",
+        }),
+      ).resolves.toMatchObject({ id: enabled ? "saved" : "fallback" });
+      expect(
+        snaptrade.connections.detailBrokerageAuthorization,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ authorizationId: "auth" }),
+      );
+      expect(select).toHaveBeenCalledTimes(enabled ? 0 : 1);
+    },
+  );
 
   it("prints the no-valid-accounts message when crypto gating rejects all choices", async () => {
     useIsolatedConfigHome();
