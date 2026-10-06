@@ -48,27 +48,28 @@ describe.skipIf(!simulation)("local CLI crypto simulation", () => {
     }
     axios.interceptors.response.use((response) => { record(response.config, response.status); return response; },
       (error) => { if (error.response) record(error.config, error.response.status); return Promise.reject(error); });
-    const { cryptoCommand } = await import("../src/commands/trade/crypto.ts");
-    const { cancelOrderCommand } = await import("../src/commands/cancelOrder.ts");
-    const sdk = new Snaptrade({ auth: SnaptradeAuth.commercialApiKey({ clientId: profile.clientId, consumerKey: profile.consumerKey }),
-      basePath: profile.basePath });
-    const { tradeCommand } = await import("../src/commands/trade/index.ts");
+    const { installAxiosPatch } = await import("../src/utils/axios.ts");
+    installAxiosPatch();
+    const sdk = (profile.authMode === "oauth"
+      ? new Snaptrade({ auth: SnaptradeAuth.personalOAuth({ accessToken: async () => profile.oauthAccessToken }), basePath: profile.basePath })
+      : new Snaptrade({ auth: SnaptradeAuth.commercialApiKey({ clientId: profile.clientId, consumerKey: profile.consumerKey }), basePath: profile.basePath })) as SnaptradeClient;
+    const user = profile.authMode === "oauth" ? {} : { userId: profile.userId, userSecret: profile.userSecret };
+    const { registerCommands } = await import("../src/commands/index.ts");
     const cli = new Command().option("--useLastAccount", "use seeded account", true);
-    cli.addCommand(tradeCommand(sdk as SnaptradeClient));
-    cli.addCommand(cancelOrderCommand(sdk as SnaptradeClient));
+    registerCommands(cli, sdk as SnaptradeClient);
     // A low limit is only meaningful here because execution is entirely simulated.
     await cli.parseAsync(["trade", "--ticker", "BTC-USD", "--action", "BUY", "--orderType", "Limit",
       "--limitPrice", "1", "crypto", "--amount", "0.001"], { from: "user" });
-    const orders = await sdk.accountInformation.getUserAccountOrders({ userId: profile.userId, userSecret: profile.userSecret, accountId: process.env.CRYPTO_LOCAL_ACCOUNT!, state: "all" });
+    const orders = await sdk.accountInformation.getUserAccountOrders({ ...user, accountId: process.env.CRYPTO_LOCAL_ACCOUNT!, state: "all" });
     const order = orders.data[0];
     expect(order).toBeDefined();
     expect(order.status).not.toBe("EXECUTED");
     const id = order.brokerage_order_id;
     expect(id).toBeTruthy();
     await cli.parseAsync(["cancel-order", "--orderId", id!], { from: "user" });
-    const terminal = await sdk.accountInformation.getUserAccountOrderDetail({ userId: profile.userId, userSecret: profile.userSecret, accountId: process.env.CRYPTO_LOCAL_ACCOUNT!, brokerage_order_id: id! });
+    const terminal = await sdk.accountInformation.getUserAccountOrderDetail({ ...user, accountId: process.env.CRYPTO_LOCAL_ACCOUNT!, brokerage_order_id: id! });
     expect(terminal.data.status).toBe("CANCELED");
-    expect(cryptoCommand).toBeDefined();
+    await cli.parseAsync(["orders"], { from: "user" });
     const invalid = ["trade", "--ticker", "BTC-USD", "--action", "BUY", "--orderType", "Limit", "--limitPrice", "1", "crypto", "--amount", "0"];
     await expect(cli.parseAsync(invalid, { from: "user" })).rejects.toThrow("positive decimal");
     await expect(cli.parseAsync([...invalid.slice(0, -1), "999"], { from: "user" })).rejects.toThrow();
