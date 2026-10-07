@@ -4,6 +4,10 @@ import type {
   Account,
   AccountOrderRecord,
   Balance,
+  CryptoOrderForm,
+  CryptoOrderPreview,
+  CryptocurrencyPair,
+  CryptocurrencyPairQuote,
   TradingSession,
 } from "snaptrade-typescript-sdk";
 import type { Leg as OptionLeg } from "../commands/trade/option/index.ts";
@@ -201,6 +205,86 @@ export function printTradePreview({
   if (notional != null) {
     logLine("📊", "Est. Shares", estimatedQty?.toFixed(4));
   }
+  printDivider();
+}
+
+// Preserve decimal strings and explicit currency codes, including non-fiat quote currencies.
+function cryptoAmount(
+  amount: string | number | undefined,
+  currency: string,
+): string {
+  return amount == null || amount === ""
+    ? "Unavailable"
+    : `${amount} ${currency}`;
+}
+
+export function printCryptoTradePreview({
+  account,
+  pair,
+  order,
+  orderType,
+  preview,
+  quote,
+}: {
+  account: Account;
+  pair: CryptocurrencyPair;
+  order: CryptoOrderForm;
+  orderType: string;
+  preview: CryptoOrderPreview;
+  quote?: CryptocurrencyPairQuote;
+}) {
+  console.log(chalk.bold("\n📄 Trade Preview\n"));
+  printAccountSection({ account });
+  console.log();
+  logLine("📈", "Ticker", pair.symbol);
+  logLine(
+    "💵",
+    "Quote",
+    quote
+      ? `Bid: ${cryptoAmount(quote.bid, pair.quote)} · Ask: ${cryptoAmount(quote.ask, pair.quote)} · Mid: ${cryptoAmount(quote.mid, pair.quote)}`
+      : "Unavailable",
+  );
+  printOrderParams({
+    action: order.side,
+    orderType,
+    timeInForce: order.time_in_force,
+  });
+  logLine(
+    "🎯",
+    "Limit Price",
+    order.limit_price == null
+      ? undefined
+      : cryptoAmount(order.limit_price, pair.quote),
+  );
+  logLine(
+    "🛑",
+    "Stop Price",
+    order.stop_price == null
+      ? undefined
+      : cryptoAmount(order.stop_price, pair.quote),
+  );
+  logLine("🔢", "Quantity", cryptoAmount(order.amount, pair.base));
+  console.log();
+  const price =
+    order.limit_price ?? (order.side === "BUY" ? quote?.ask : quote?.bid);
+  const estimate =
+    price == null ? undefined : Number(price) * Number(order.amount);
+  logLine(
+    "📊",
+    order.side === "BUY" ? "Est. Cost" : "Est. Credit",
+    estimate != null && Number.isFinite(estimate) && Number(price) > 0
+      ? `${estimate.toLocaleString("en-US", { maximumSignificantDigits: 12 })} ${pair.quote} (before fees)`
+      : "Unavailable",
+  );
+  logLine(
+    "💸",
+    "Est. Fee",
+    cryptoAmount(
+      preview.estimated_fee?.amount,
+      preview.estimated_fee?.currency ?? pair.quote,
+    ),
+  );
+  console.log(chalk.dim("  Estimates may change before execution."));
   printDivider();
 }
 

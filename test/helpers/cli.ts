@@ -43,6 +43,8 @@ type MockSnaptradeClient = SnaptradeClient & {
     getUserAccountQuotes: AsyncMock;
     getCryptocurrencyPairQuote: AsyncMock;
     searchCryptocurrencyPairInstruments: AsyncMock;
+    placeCryptoOrder: AsyncMock;
+    previewCryptoOrder: AsyncMock;
     placeForceOrder: AsyncMock;
     replaceOrder: AsyncMock;
   };
@@ -112,6 +114,8 @@ export function createMockSnaptrade(
       getUserAccountQuotes: vi.fn(),
       getCryptocurrencyPairQuote: vi.fn(),
       searchCryptocurrencyPairInstruments: vi.fn(),
+      placeCryptoOrder: vi.fn(),
+      previewCryptoOrder: vi.fn(),
       placeForceOrder: vi.fn(),
       replaceOrder: vi.fn(),
     },

@@ -12,6 +12,10 @@ const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
 export function quoteCommand(snaptrade: SnaptradeClient): Command {
   return new Command("quote")
     .description("Get the latest market quote")
+    .option(
+      "--crypto",
+      "Get crypto pair quotes (including mixed stock/crypto accounts)",
+    )
     .argument(
       "[symbols]",
       "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols",
@@ -21,10 +25,11 @@ export function quoteCommand(snaptrade: SnaptradeClient): Command {
       const account = await selectAccount({
         snaptrade,
         useLastAccount: command.parent.opts().useLastAccount,
+        ...(opts.crypto ? { context: "crypto_trade" as const } : {}),
       });
 
       // Quote endpoints are different for crypto and non-crypto accounts
-      if (CRYPTO_BROKERS.includes(account.institution_name)) {
+      if (opts.crypto || CRYPTO_BROKERS.includes(account.institution_name)) {
         const symbols = await (async () => {
           if (symbolsArgs) {
             return symbolsArgs.split(",").map((s) => s.trim());

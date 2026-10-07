@@ -22,6 +22,18 @@ const brokers_with_mleg_options = [
 
 const brokers_with_crypto = ["COINBASE", "BINANCE", "KRAKEN"];
 
+function cryptoDisabledReason(
+  connection: import("snaptrade-typescript-sdk").BrokerageAuthorization,
+): string | false {
+  if (connection.disabled) return "Connection disabled";
+  if (connection.type === "read") return "Read-only connection";
+  const brokerage = connection.brokerage;
+  return brokers_with_crypto.includes(brokerage?.slug ?? "") ||
+    brokerage?.allows_cryptocurrency_and_regular_securities === true
+    ? false
+    : "Crypto trading not supported";
+}
+
 export async function selectAccount({
   snaptrade,
   context,
@@ -46,9 +58,20 @@ export async function selectAccount({
             ...user,
             accountId,
           });
+        if (context === "crypto_trade") {
+          const connection =
+            await snaptrade.connections.detailBrokerageAuthorization({
+              ...user,
+              authorizationId: accountResponse.data.brokerage_authorization,
+            });
+          const reason = cryptoDisabledReason(connection.data);
+          if (reason) throw new Error(reason);
+        }
         return accountResponse.data;
       } catch (_) {
-        console.log("⚠️ Last account not found. Falling back to selector.");
+        console.log(
+          "⚠️ Last account unavailable for this command. Falling back to selector.",
+        );
       }
     }
   }
@@ -88,9 +111,7 @@ export async function selectAccount({
             }
           }
           if (context === "crypto_trade") {
-            if (!brokers_with_crypto.includes(connection.brokerage!.slug!)) {
-              return "Crypto trading not supported";
-            }
+            return cryptoDisabledReason(connection);
           }
           return false; // No issues, account is selectable
         })(),
