@@ -287,17 +287,15 @@ describe("account list and selection", () => {
         balance: { total: { amount: 1, currency: "USD" } },
       };
       vi.doMock("../src/utils/accounts.ts", () => ({
-        listAccountsByConnection: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              connection: {
-                type: "trade",
-                brokerage: { name: "Coinbase", slug: "COINBASE" },
-              },
-              accounts: [{ ...acct, id: "fallback" }],
+        listAccountsByConnection: vi.fn().mockResolvedValue([
+          {
+            connection: {
+              type: "trade",
+              brokerage: { name: "Coinbase", slug: "COINBASE" },
             },
-          ]),
+            accounts: [{ ...acct, id: "fallback" }],
+          },
+        ]),
       }));
       const select = vi.fn().mockResolvedValue("fallback");
       vi.doMock("@inquirer/prompts", () => ({ select }));
@@ -380,5 +378,93 @@ describe("account list and selection", () => {
     expect(stripAnsi(consoleOutput.error.join("\n"))).toContain(
       "No valid accounts available. Connect an account with snaptrade connect",
     );
+  });
+});
+
+describe("crypto quote account eligibility", () => {
+  it.each([false, true])(
+    "allows read connections for quotes, retains disabled gating (%s)",
+    async (disabled) => {
+      vi.resetModules();
+      useIsolatedConfigHome();
+      vi.doMock("../src/utils/user.ts", () => ({
+        loadOrRegisterUser: vi.fn().mockResolvedValue({}),
+      }));
+      const account = {
+        id: "read",
+        name: "Read",
+        balance: { total: { amount: 1, currency: "USD" } },
+      };
+      vi.doMock("../src/utils/accounts.ts", () => ({
+        listAccountsByConnection: vi.fn().mockResolvedValue([
+          {
+            connection: {
+              disabled,
+              type: "read",
+              brokerage: {
+                name: "Robinhood",
+                slug: "ROBINHOOD-AGENTIC",
+                allows_cryptocurrency_and_regular_securities: true,
+              },
+            },
+            accounts: [account],
+          },
+          {
+            connection: {
+              type: "read",
+              brokerage: { name: "Coinbase", slug: "COINBASE" },
+            },
+            accounts: [{ ...account, id: "fallback" }],
+          },
+        ]),
+      }));
+      const select = vi.fn().mockResolvedValue("fallback");
+      vi.doMock("@inquirer/prompts", () => ({ select }));
+      const { selectAccount } = await import("../src/utils/selectAccount.ts");
+      await selectAccount({
+        snaptrade: createMockSnaptrade(),
+        useLastAccount: false,
+        context: "crypto_quote",
+      });
+      expect(
+        select.mock.calls[0][0].choices.find(
+          (choice: { value?: string }) => choice.value === "read",
+        ).disabled,
+      ).toBe(disabled ? "Connection disabled" : false);
+    },
+  );
+
+  it("reuses a saved read-only account for crypto quotes", async () => {
+    vi.resetModules();
+    useIsolatedConfigHome();
+    vi.doMock("../src/utils/user.ts", () => ({
+      loadOrRegisterUser: vi.fn().mockResolvedValue({}),
+    }));
+    const { saveProfile } = await import("../src/utils/settings.ts");
+    saveProfile({ lastAccountId: "saved" });
+    const snaptrade = createMockSnaptrade();
+    snaptrade.accountInformation.getUserAccountDetails.mockResolvedValue({
+      data: { id: "saved", brokerage_authorization: "auth" },
+    });
+    snaptrade.connections.detailBrokerageAuthorization.mockResolvedValue({
+      data: {
+        type: "read",
+        brokerage: {
+          slug: "ROBINHOOD-AGENTIC",
+          allows_cryptocurrency_and_regular_securities: true,
+        },
+      },
+    });
+    const { selectAccount } = await import("../src/utils/selectAccount.ts");
+    await expect(
+      selectAccount({
+        snaptrade,
+        useLastAccount: true,
+        context: "crypto_quote",
+      }),
+    ).resolves.toMatchObject({ id: "saved" });
+    expect(
+      snaptrade.connections.detailBrokerageAuthorization,
+    ).toHaveBeenCalledWith({ authorizationId: "auth" });
   });
 });
