@@ -164,17 +164,3 @@ snaptrade
 ```
 
 To release a new version, run `npm run release`
-
-### Crypto trade previews
-
-Use the account's available pair symbol and a decimal quantity of the base currency. Trading parses the supplied `BASE-QUOTE` symbol locally and lets the broker preview validate availability, without a separate pair-catalog request. Run `snaptrade quote --crypto` without a symbol for interactive pair discovery:
-
-```sh
-snaptrade quote --crypto BTC-USD
-snaptrade trade --ticker BTC-USD --action BUY crypto --amount 0.0001
-snaptrade trade --ticker BTC-USD --action SELL --orderType StopLimit --limitPrice 60000 --stopPrice 61000 crypto --amount 0.0001
-```
-
-Crypto orders default to GTC; an explicit `--tif Day` is rejected. The preview shows the account, pair, base currency quantity, bid/ask quote, order parameters and the broker's estimated fee before asking for confirmation. Cost/credit estimates use the limit price or current ask/bid and exclude fees; unavailable quotes or fees are labeled as unavailable. A failed broker preview stops the flow. Crypto amounts are coin quantities, not notional amounts.
-
-The CLI does not offer a post-only option; limit orders send the required API field as `post_only: false`. Robinhood Agentic supports market, limit, stop and stop-limit crypto orders with GTC when the live connection advertises crypto support. Use `quote --crypto` on mixed stock/crypto accounts; ordinary stock quote commands retain their existing routing.
