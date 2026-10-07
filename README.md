@@ -142,12 +142,19 @@ Commands:
   recent-orders              List the most recent orders (within last 24 hours) for a given account
   orders                     List all orders for a given account
   instruments                Get a list of available instruments from a broker
-  quote [symbols]            Get the latest market quote
+  quote [options] [symbols]  Get the latest market quote
   trade [options]            Execute different types of trades (equity, options, crypto)
   cancel-order [options]     Cancel an existing order
   profiles                   Manage SnapTrade CLI profiles
   help [command]             display help for command
 ```
+
+For mixed stock/crypto accounts, `snaptrade quote BTC` resolves a unique supported
+crypto pair; `snaptrade quote BTC-USD` selects the currency explicitly. Use
+`--equity BTC` for the equity ticker or `--crypto BTC-USD` to select crypto quotes
+explicitly. Ambiguous bare crypto symbols require a full pair. Request stocks and
+crypto separately; comma-separated lists work within either asset type. Crypto
+output includes currency and the quote timestamp when provided by the API.
 
 ## ☕️ Development
 

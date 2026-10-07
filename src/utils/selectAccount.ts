@@ -24,14 +24,17 @@ const brokers_with_crypto = ["COINBASE", "BINANCE", "KRAKEN"];
 
 function cryptoDisabledReason(
   connection: import("snaptrade-typescript-sdk").BrokerageAuthorization,
+  trading = true,
 ): string | false {
   if (connection.disabled) return "Connection disabled";
-  if (connection.type === "read") return "Read-only connection";
+  if (trading && connection.type === "read") return "Read-only connection";
   const brokerage = connection.brokerage;
   return brokers_with_crypto.includes(brokerage?.slug ?? "") ||
     brokerage?.allows_cryptocurrency_and_regular_securities === true
     ? false
-    : "Crypto trading not supported";
+    : trading
+      ? "Crypto trading not supported"
+      : "Crypto quotes not supported";
 }
 
 export async function selectAccount({
@@ -41,7 +44,7 @@ export async function selectAccount({
 }: {
   snaptrade: SnaptradeClient;
   useLastAccount: boolean;
-  context?: "option_trade" | "equity_trade" | "crypto_trade";
+  context?: "option_trade" | "equity_trade" | "crypto_trade" | "crypto_quote";
 }) {
   const user = await loadOrRegisterUser(snaptrade);
 
@@ -58,13 +61,16 @@ export async function selectAccount({
             ...user,
             accountId,
           });
-        if (context === "crypto_trade") {
+        if (context === "crypto_trade" || context === "crypto_quote") {
           const connection =
             await snaptrade.connections.detailBrokerageAuthorization({
               ...user,
               authorizationId: accountResponse.data.brokerage_authorization,
             });
-          const reason = cryptoDisabledReason(connection.data);
+          const reason = cryptoDisabledReason(
+            connection.data,
+            context === "crypto_trade",
+          );
           if (reason) throw new Error(reason);
         }
         return accountResponse.data;
@@ -110,8 +116,8 @@ export async function selectAccount({
               return "Option trading not supported";
             }
           }
-          if (context === "crypto_trade") {
-            return cryptoDisabledReason(connection);
+          if (context === "crypto_trade" || context === "crypto_quote") {
+            return cryptoDisabledReason(connection, context === "crypto_trade");
           }
           return false; // No issues, account is selectable
         })(),

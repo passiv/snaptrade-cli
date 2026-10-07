@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { selectAccount } from "../utils/selectAccount.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
@@ -12,27 +12,119 @@ const CRYPTO_BROKERS = ["Coinbase", "Binance", "Kraken"];
 export function quoteCommand(snaptrade: SnaptradeClient): Command {
   return new Command("quote")
     .description("Get the latest market quote")
+    .addOption(
+      new Option(
+        "--crypto",
+        "Get crypto pair quotes (including mixed stock/crypto accounts)",
+      ).conflicts("equity"),
+    )
     .option(
-      "--crypto",
-      "Get crypto pair quotes (including mixed stock/crypto accounts)",
+      "--equity",
+      "Get equity quotes when a ticker also names a cryptocurrency",
     )
     .argument(
       "[symbols]",
       "The symbol to get the quote for. Can be a single symbol or a comma-separated list of symbols",
     )
     .action(async (symbolsArgs: string, opts, command) => {
+      const requested = symbolsArgs
+        ?.split(",")
+        .map((s) => s.trim().toUpperCase());
+      if (requested?.some((s) => !s)) {
+        throw new Error("Quote symbols must not be empty.");
+      }
+      if (
+        requested?.some(
+          (s) =>
+            /\s/.test(s) ||
+            s.startsWith("-") ||
+            s.endsWith("-") ||
+            s.split("-").length > 2,
+        )
+      ) {
+        throw new Error(
+          "Invalid quote symbol. Use a ticker or a BASE-QUOTE pair.",
+        );
+      }
       const user = await loadOrRegisterUser(snaptrade);
       const account = await selectAccount({
         snaptrade,
         useLastAccount: command.parent.opts().useLastAccount,
-        ...(opts.crypto ? { context: "crypto_trade" as const } : {}),
+        ...(opts.crypto ? { context: "crypto_quote" as const } : {}),
       });
 
+      let crypto =
+        !opts.equity &&
+        (opts.crypto || CRYPTO_BROKERS.includes(account.institution_name));
+      let resolved: string[] | undefined;
+      // Mixed accounts need account-scoped pair discovery: BTC is also an equity ticker.
+      if (!opts.equity && requested) {
+        let mixed = false;
+        if (!crypto) {
+          const connection =
+            await snaptrade.connections.detailBrokerageAuthorization({
+              ...user,
+              authorizationId: account.brokerage_authorization,
+            });
+          mixed =
+            connection.data.brokerage
+              ?.allows_cryptocurrency_and_regular_securities === true;
+        }
+        if (crypto || mixed) {
+          const pairs = await Promise.all(
+            requested.map(async (symbol) => {
+              const fullPair = /^[^\s-]+-[^\s-]+$/.test(symbol);
+              // Explicit pair quotes need no catalog scan.
+              if (crypto && fullPair) return symbol;
+              const [base, quote] = symbol.split("-");
+              const response =
+                await snaptrade.trading.searchCryptocurrencyPairInstruments({
+                  ...user,
+                  accountId: account.id,
+                  base,
+                  ...(fullPair ? { quote } : {}),
+                });
+              const matches = [
+                ...new Set(
+                  response.data.items
+                    .filter(
+                      (pair) =>
+                        pair.base.toUpperCase() === base &&
+                        (!fullPair || pair.quote.toUpperCase() === quote),
+                    )
+                    .map((pair) => pair.symbol ?? `${pair.base}-${pair.quote}`),
+                ),
+              ];
+              if (matches.length > 1) {
+                throw new Error(
+                  `Ambiguous crypto symbol ${symbol}. Specify a pair: ${matches.join(", ")}. Use --equity for the equity ticker.`,
+                );
+              }
+              if (!matches.length && crypto) {
+                throw new Error(
+                  `No crypto pair found for ${symbol}. Specify a supported BASE-QUOTE pair, such as BTC-USD.`,
+                );
+              }
+              return matches[0];
+            }),
+          );
+          if (pairs.some(Boolean)) {
+            if (pairs.some((pair) => !pair)) {
+              throw new Error(
+                "Request crypto and equity quotes separately. Use --crypto or --equity to select the asset type.",
+              );
+            }
+            resolved = pairs as string[];
+            crypto = true;
+          }
+        }
+      }
+
       // Quote endpoints are different for crypto and non-crypto accounts
-      if (opts.crypto || CRYPTO_BROKERS.includes(account.institution_name)) {
+      if (crypto) {
         const symbols = await (async () => {
-          if (symbolsArgs) {
-            return symbolsArgs.split(",").map((s) => s.trim());
+          if (resolved) {
+            return resolved;
           }
           const response =
             await snaptrade.trading.searchCryptocurrencyPairInstruments({
@@ -69,23 +161,26 @@ export function quoteCommand(snaptrade: SnaptradeClient): Command {
           })),
         );
         const table = new Table({
-          head: ["Symbol", "Bid", "Ask", "Mid"],
+          head: ["Symbol", "Currency", "Bid", "Ask", "Mid", "Quote time"],
         });
 
         quotes.forEach((quote) => {
           table.push([
             quote.symbol,
+            quote.symbol.split("-")[1],
             quote.quote.data.bid,
             quote.quote.data.ask,
-            quote.quote.data.mid,
+            quote.quote.data.mid ?? "N/A",
+            quote.quote.data.timestamp ?? "Unavailable",
           ]);
         });
 
+        console.log(`Crypto quotes for ${account.institution_name} account`);
         console.log(table.toString());
       } else {
         const symbols = await (async () => {
-          if (symbolsArgs) {
-            return symbolsArgs;
+          if (requested) {
+            return requested.join(",");
           }
 
           const conn = await snaptrade.connections.detailBrokerageAuthorization(
