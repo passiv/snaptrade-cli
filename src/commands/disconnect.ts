@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
+import { getProfile } from "../utils/settings.ts";
 
 export function disconnectCommand(snaptrade: SnaptradeClient): Command {
   return new Command("disconnect")
@@ -10,6 +11,11 @@ export function disconnectCommand(snaptrade: SnaptradeClient): Command {
     .argument("[connectionId]", "Connection ID to remove")
     .action(async (connectionId: string | undefined) => {
       const user = await loadOrRegisterUser(snaptrade);
+      if (getProfile().authMode === "oauth") {
+        throw new Error(
+          "The SDK does not support disconnecting connections with OAuth. Use an API-key profile.",
+        );
+      }
 
       // Prompt for connection IDs if not provided
       const connectionIds = await (async () => {
@@ -36,9 +42,9 @@ export function disconnectCommand(snaptrade: SnaptradeClient): Command {
         connectionIds
           .filter((id) => id != null)
           .map(async (id) => {
-            return snaptrade.connections.removeBrokerageAuthorization({
+            return snaptrade.connections.deleteConnection({
               ...user,
-              authorizationId: id,
+              connectionId: id,
             });
           }),
       );
