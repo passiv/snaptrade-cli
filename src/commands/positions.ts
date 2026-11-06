@@ -43,12 +43,14 @@ function normalizePosition(position: AccountPosition): Position {
     ? instrument.underlying.raw_symbol || instrument.underlying.symbol
     : instrument.raw_symbol || instrument.symbol;
 
+  const currency = position.currency || instrument.currency;
+
   return {
-    symbol: symbol || "Unknown",
+    symbol: typeof symbol === "string" && symbol ? symbol : "Unknown",
     quantity: parseNumber(position.units) ?? 0,
     costBasis: parseNumber(position.cost_basis),
     brokeragePrice: parseNumber(position.price),
-    currency: position.currency || instrument.currency || "USD",
+    currency: typeof currency === "string" && currency ? currency : "USD",
     assetClass: isOption ? "option" : "equity",
   };
 }

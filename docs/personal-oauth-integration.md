@@ -28,7 +28,7 @@ Use API-key authentication when your app needs access outside its OAuth grant. P
 6. Exchange the authorization code for tokens.
 7. Store the tokens securely for the signed-in app user.
 8. Refresh the access token before it expires.
-9. Initialize the SnapTrade SDK with `SnaptradeAuth.personalOAuth`.
+9. Initialize the SnapTrade SDK with `SnaptradeAuth.oauth`.
 10. Use normal SnapTrade APIs. The Personal user is inferred from the token.
 
 ## OAuth Discovery
@@ -162,13 +162,13 @@ If an API request returns `401`, force one refresh and retry the request once. I
 
 ## SDK Initialization
 
-Initialize the SnapTrade SDK with Personal OAuth auth. Pass an async access-token function so the SDK can use a fresh token for each request.
+Use `snaptrade-typescript-sdk` 13.2.0 or later and initialize it with `SnaptradeAuth.oauth`. Pass an async access-token function so the SDK can use a fresh token for each request. Your app remains responsible for token storage, refresh, and callback validation.
 
 ```ts
 import { Snaptrade, SnaptradeAuth } from "snaptrade-typescript-sdk";
 
 const snaptrade = new Snaptrade({
-  auth: SnaptradeAuth.personalOAuth({
+  auth: SnaptradeAuth.oauth({
     accessToken: async () => {
       const token = await getFreshSnapTradeAccessToken(appUserId);
       if (!token) {
@@ -203,7 +203,7 @@ For Personal OAuth apps, prefer connection-management UX that makes the user's c
 
 - "Connect account" opens a new Connection Portal session.
 - "Reconnect" passes the existing brokerage authorization ID.
-- "Disconnect" removes an existing brokerage authorization.
+- In SDK 13.2.0, connection deletion requires an API-key profile; the CLI reports this limitation for OAuth profiles.
 - "Refresh status" lists brokerage authorizations and accounts after the portal closes.
 
 ## Token Revocation And Sign-Out
@@ -239,7 +239,7 @@ Keep a clear distinction in your data model:
 
 ```ts
 type SnapTradeAuthMode =
-  | "personalOAuth"
+  | "oauth"
   | "personalApiKey"
   | "commercialApiKey";
 ```
@@ -256,6 +256,6 @@ For Personal OAuth records, store OAuth token fields only. Do not retain stale C
 - Your app stores refresh tokens securely.
 - Your API client refreshes before expiry with a small skew.
 - Your API client retries once after a `401` by forcing a refresh.
-- Your SDK uses `SnaptradeAuth.personalOAuth`.
+- Your SDK uses `SnaptradeAuth.oauth`.
 - Your Personal OAuth path does not create SnapTrade users or store `userSecret`.
 - Your UI explains that Personal OAuth currently supports read and connection-management workflows.

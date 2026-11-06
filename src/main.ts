@@ -60,7 +60,7 @@ async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
   if (profile.authMode === "oauth") {
     await ensureOAuthLogin();
     return new Snaptrade({
-      auth: SnaptradeAuth.personalOAuth({
+      auth: SnaptradeAuth.oauth({
         accessToken: getOAuthAccessToken(),
       }),
       userAgent: `snaptrade-cli/${version}`,
@@ -102,7 +102,7 @@ async function initializeSnaptrade(version: string): Promise<SnaptradeClient> {
     clearProfileFields(["clientId", "consumerKey", "userId", "userSecret"]);
     await ensureOAuthLogin();
     return new Snaptrade({
-      auth: SnaptradeAuth.personalOAuth({
+      auth: SnaptradeAuth.oauth({
         accessToken: getOAuthAccessToken(),
       }),
       userAgent: `snaptrade-cli/${version}`,

@@ -55,7 +55,7 @@ describe("positions command regressions", () => {
                     price: 100,
                     currency: "USD",
                     instrument: {
-                      kind: "equity",
+                      kind: "stock",
                       raw_symbol: "AAPL",
                       symbol: "AAPL",
                       currency: "USD",
@@ -69,7 +69,7 @@ describe("positions command regressions", () => {
                     price: 100,
                     currency: "USD",
                     instrument: {
-                      kind: "equity",
+                      kind: "stock",
                       raw_symbol: "AAPL",
                       symbol: "AAPL",
                       currency: "USD",
