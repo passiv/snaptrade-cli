@@ -72,7 +72,9 @@ describe("OAuth trading scope", () => {
       oauthExpiresAt: new Date(Date.now() + 3600_000).toISOString(),
       oauthScope: "read",
     });
-    const { ensureOAuthLogin } = await import("../src/utils/oauth.ts");
+    const { ensureOAuthLogin, OAUTH_CLIENT_ID } = await import(
+      "../src/utils/oauth.ts"
+    );
 
     await ensureOAuthLogin("trade");
 
@@ -81,6 +83,8 @@ describe("OAuth trading scope", () => {
       "openid profile email read trade",
     );
     expect(requests[0].get("grant_type")).toBe("authorization_code");
+    expect(requests[0].get("client_id")).toBe(OAUTH_CLIENT_ID);
+    expect(settings.getProfile().oauthClientId).toBe(OAUTH_CLIENT_ID);
     expect(settings.getProfile().oauthScope).toBe(
       "openid profile email read trade",
     );

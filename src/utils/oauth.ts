@@ -4,6 +4,8 @@ import net from "net";
 import chalk from "chalk";
 import open from "open";
 import { confirm } from "@inquirer/prompts";
+import { isAxiosError } from "axios";
+import { SnaptradeOAuthDevice } from "snaptrade-typescript-sdk";
 import { createRequire } from "module";
 import { getProfile, saveProfile, type ProfileData } from "./settings.ts";
 
@@ -105,11 +107,110 @@ function emailFromToken(token: OAuthTokenResponse): string | undefined {
   return undefined;
 }
 
+function saveOAuthLogin(
+  token: OAuthTokenResponse,
+  flow: "browser" | "device",
+  clientId: string,
+) {
+  saveProfile({
+    accountType: "personal",
+    authMode: "oauth",
+    oauthFlow: flow,
+    oauthClientId: clientId,
+    clientId: undefined,
+    consumerKey: undefined,
+    userId: undefined,
+    userSecret: undefined,
+    lastAccountId: undefined,
+    oauthAccessToken: token.access_token,
+    oauthRefreshToken: token.refresh_token,
+    oauthExpiresAt: expiresAt(token.expires_in),
+    // Record only the scopes confirmed by the server.
+    oauthScope: token.scope,
+    oauthSubject: subjectFromToken(token),
+    oauthEmail: emailFromToken(token),
+  });
+}
+
+export async function loginWithDeviceOAuth(): Promise<void> {
+  const profile = getProfile();
+  const clientId =
+    process.env.SNAPTRADE_OAUTH_DEVICE_CLIENT_ID?.trim() ||
+    (profile.oauthFlow === "device" ? profile.oauthClientId : undefined);
+  if (!clientId) {
+    throw new Error(
+      "Set SNAPTRADE_OAUTH_DEVICE_CLIENT_ID to a pre-registered public Device Code client's ID. The browser CLI client only supports authorization-code grants.",
+    );
+  }
+  const oauth = new SnaptradeOAuthDevice({
+    issuer: oauthIssuerFromBasePath(profile.basePath),
+  });
+  const controller = new AbortController();
+  const cancel = () => controller.abort();
+  process.once("SIGINT", cancel);
+
+  try {
+    const authorization = await oauth.startDeviceAuthorization({
+      clientId,
+      signal: controller.signal,
+    });
+    console.log(`\nOpen ${authorization.verificationUri} in any browser.`);
+    console.log(`Enter code: ${chalk.bold(authorization.userCode)}`);
+    console.log(
+      "Waiting for approval. Device login provides read-only access. Press Ctrl+C to cancel.\n",
+    );
+
+    const token = await oauth.waitForDeviceToken({
+      clientId,
+      authorization,
+      signal: controller.signal,
+    });
+    saveOAuthLogin(
+      {
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken,
+        expires_in: token.expiresIn,
+        scope: token.scope,
+      },
+      "device",
+      clientId,
+    );
+    console.log(chalk.green("SnapTrade device login complete.\n"));
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("SnapTrade device login cancelled.");
+    }
+    if (isAxiosError(error)) {
+      const code = error.response?.data?.error;
+      if (code === "access_denied") {
+        throw new Error("SnapTrade device authorization was denied.");
+      }
+      if (code === "expired_token" || code === "device_not_found") {
+        throw new Error(
+          "SnapTrade device code expired. Run `snaptrade login --use-device-code` to try again.",
+        );
+      }
+      if (code === "unauthorized_client" || code === "invalid_client") {
+        throw new Error(
+          "SnapTrade rejected the device client. SNAPTRADE_OAUTH_DEVICE_CLIENT_ID must identify a public client registered for the Device Code grant.",
+        );
+      }
+    }
+    // Axios errors contain the private device code in their request config.
+    throw new Error(
+      error instanceof Error ? error.message : "SnapTrade device login failed.",
+    );
+  } finally {
+    process.removeListener("SIGINT", cancel);
+  }
+}
+
 async function exchangeToken(
   tokenEndpoint: string,
   body: URLSearchParams,
+  clientId: string,
 ): Promise<OAuthTokenResponse> {
-  body.set("client_id", OAUTH_CLIENT_ID);
+  body.set("client_id", clientId);
   const response = await fetch(tokenEndpoint, {
     method: "POST",
     headers: {
@@ -132,11 +233,12 @@ async function revokeOAuthToken(
   revocationEndpoint: string,
   token: string,
   tokenTypeHint: "access_token" | "refresh_token",
+  clientId: string,
 ): Promise<void> {
   const body = new URLSearchParams({
     token,
     token_type_hint: tokenTypeHint,
-    client_id: OAUTH_CLIENT_ID,
+    client_id: clientId,
   });
   const response = await fetch(revocationEndpoint, {
     method: "POST",
@@ -278,20 +380,10 @@ export async function loginWithOAuth(): Promise<void> {
       code_verifier: codeVerifier,
       redirect_uri: OAUTH_REDIRECT_URI,
     }),
+    OAUTH_CLIENT_ID,
   );
 
-  saveProfile({
-    accountType: "personal",
-    authMode: "oauth",
-    oauthAccessToken: token.access_token,
-    oauthRefreshToken: token.refresh_token,
-    oauthExpiresAt: expiresAt(token.expires_in),
-    // The server can narrow the requested scopes for this OAuth client.
-    // Only record scopes that the token response confirms were granted.
-    oauthScope: token.scope,
-    oauthSubject: subjectFromToken(token),
-    oauthEmail: emailFromToken(token),
-  });
+  saveOAuthLogin(token, "browser", OAUTH_CLIENT_ID);
   console.log(chalk.green("SnapTrade OAuth login complete.\n"));
   if (!token.scope?.split(/\s+/).includes("trade")) {
     console.warn(
@@ -320,6 +412,7 @@ export async function revokeOAuthTokensForProfile(
       metadata.revocation_endpoint,
       profile.oauthRefreshToken,
       "refresh_token",
+      profile.oauthClientId ?? OAUTH_CLIENT_ID,
     );
   }
   if (profile.oauthAccessToken) {
@@ -327,6 +420,7 @@ export async function revokeOAuthTokensForProfile(
       metadata.revocation_endpoint,
       profile.oauthAccessToken,
       "access_token",
+      profile.oauthClientId ?? OAUTH_CLIENT_ID,
     );
   }
 }
@@ -357,6 +451,7 @@ export async function refreshOAuthToken(force = false): Promise<string | null> {
       grant_type: "refresh_token",
       refresh_token: profile.oauthRefreshToken,
     }),
+    profile.oauthClientId ?? OAUTH_CLIENT_ID,
   );
 
   saveProfile({
@@ -376,6 +471,11 @@ export async function refreshOAuthToken(force = false): Promise<string | null> {
 export async function ensureOAuthLogin(
   requiredScope: "read" | "trade" = "read",
 ): Promise<void> {
+  if (requiredScope === "trade" && getProfile().oauthFlow === "device") {
+    throw new Error(
+      "Device login is read-only. Run `snaptrade login` to authorize trading in your browser.",
+    );
+  }
   let token: string | null = null;
   try {
     token = await refreshOAuthToken();
@@ -396,7 +496,11 @@ export async function ensureOAuthLogin(
       console.log(chalk.yellow("SnapTrade OAuth login cancelled."));
       process.exit(1);
     }
-    await loginWithOAuth();
+    if (getProfile().oauthFlow === "device") {
+      await loginWithDeviceOAuth();
+    } else {
+      await loginWithOAuth();
+    }
   } else if (
     requiredScope === "trade" &&
     !getProfile().oauthScope?.split(/\s+/).includes("trade")

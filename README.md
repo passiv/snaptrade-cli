@@ -53,6 +53,21 @@ Use `snaptrade status` to check the active profile. Personal OAuth profiles show
 
 Run `snaptrade logout` to sign out of the active Personal OAuth profile. The CLI attempts to revoke its tokens, clears its locally stored OAuth credentials, and keeps the profile for a later sign-in. The next authenticated command will prompt you to sign in again.
 
+To sign in explicitly with Personal OAuth, run `snaptrade login`. This opens browser authorization with PKCE and can grant trading access when your OAuth client, user grant, and brokerage account allow it.
+
+For SSH sessions, containers, or signing in on another device, use:
+
+```bash
+export SNAPTRADE_OAUTH_DEVICE_CLIENT_ID=<registered-public-device-client-id>
+snaptrade login --use-device-code
+```
+
+The CLI displays a verification URL and short code. Open the URL in any browser, enter the code, and approve access. The CLI polls until approval, denial, or expiry; Ctrl+C cancels the attempt. Device login requires no browser or callback port on the machine running the CLI.
+
+Device grants currently provide **read-only access**. Trading commands explain how to switch to browser login with `snaptrade login`. Later sign-ins on a device profile continue using device codes, including after logout.
+
+Device login needs a separate, pre-registered **public Device Code** OAuth client. The existing CLI client supports browser authorization only. Set `SNAPTRADE_OAUTH_DEVICE_CLIENT_ID` for the first successful device login; the CLI saves the client ID with the profile and uses it for subsequent sign-ins, refresh and logout. Neither flow requires a client secret or dynamic client registration. Tokens are refreshed automatically and stored in the active profile with owner-only file permissions.
+
 Profiles are managed with `snaptrade profiles`:
 
 - `snaptrade profiles list` shows each local profile and its authentication mode.
@@ -131,6 +146,7 @@ Options:
 
 Commands:
   status                     Get current status of your SnapTrade authentication
+  login [options]            Sign in to the active profile with Personal SnapTrade OAuth
   logout                     Sign out of the active Personal OAuth profile
   brokers                    List all brokers available to connect
   connect [options]          Establish a new broker connection

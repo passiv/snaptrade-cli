@@ -20,6 +20,10 @@ Use API-key authentication when your app needs access outside its OAuth grant. P
 
 ## High-Level Flow
 
+The steps below describe browser authorization with PKCE, the CLI's default. The CLI also offers `snaptrade login --use-device-code` for SSH sessions and other environments without a local browser. It uses the SDK's `SnaptradeOAuthDevice` helper to obtain a verification URL and user code, then poll for tokens. The user approves in a browser on any device; no loopback callback is needed. SnapTrade device grants currently provide only `read` access. The CLI preserves the login method for later sign-ins and uses the same token storage, refresh, and revocation handling for both flows. Neither flow performs dynamic client registration.
+
+The API permits one primary grant per client. The existing public CLI application uses authorization code; device login therefore requires a separate public application with the Device Code grant. Set `SNAPTRADE_OAUTH_DEVICE_CLIENT_ID` to that application's client ID before the first device login. No client secret or redirect URI is needed for the device application. After success, the CLI stores the client ID with the profile and uses it for refresh, revocation and later device sign-ins. Changing this environment variable affects new device logins, not refresh or revocation of existing grants.
+
 1. Register an OAuth client with SnapTrade and configure your redirect URI.
 2. Discover the OAuth endpoints from SnapTrade metadata.
 3. Start an authorization-code flow with PKCE.
