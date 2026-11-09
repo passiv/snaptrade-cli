@@ -6,6 +6,7 @@ import open from "open";
 import { confirm } from "@inquirer/prompts";
 import { createRequire } from "module";
 import { getProfile, saveProfile, type ProfileData } from "./settings.ts";
+import { renderOAuthPage } from "./oauthPage.ts";
 
 const require = createRequire(import.meta.url);
 const oauthConstants = require("./oauthConstants.cjs") as {
@@ -201,26 +202,35 @@ async function waitForOAuthCallback(
       const state = requestUrl.searchParams.get("state");
       const code = requestUrl.searchParams.get("code");
       if (error) {
-        res.writeHead(400, { "Content-Type": "text/html" });
+        res.writeHead(400, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        });
         res.end(
-          "<h1>SnapTrade authorization failed</h1><p>You can close this tab.</p>",
+          renderOAuthPage("denied"),
           () =>
             finish(new Error(`SnapTrade OAuth authorization failed: ${error}`)),
         );
         return;
       }
       if (!code || state !== expectedState) {
-        res.writeHead(400, { "Content-Type": "text/html" });
+        res.writeHead(400, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        });
         res.end(
-          "<h1>Invalid SnapTrade OAuth callback</h1><p>You can close this tab.</p>",
+          renderOAuthPage("invalid"),
           () => finish(new Error("Invalid SnapTrade OAuth callback.")),
         );
         return;
       }
 
-      res.writeHead(200, { "Content-Type": "text/html" });
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
       res.end(
-        "<h1>SnapTrade CLI is connected</h1><p>You can close this tab.</p>",
+        renderOAuthPage("authorized"),
         () => finish(null, code),
       );
     });

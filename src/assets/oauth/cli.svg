@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">SnapTrade CLI icon</title>
+  <desc id="desc">A teal terminal prompt and amber cursor on a dark square.</desc>
+  <rect width="512" height="512" rx="104" fill="#142D36"/>
+  <polygon points="132,137 251,256 132,375 94,337 175,256 94,175" fill="#3AA1A4"/>
+  <rect x="252" y="320" width="150" height="54" rx="27" fill="#F0B13B"/>
+</svg>
