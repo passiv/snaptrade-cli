@@ -13,7 +13,7 @@ export function disconnectCommand(snaptrade: SnaptradeClient): Command {
       const user = await loadOrRegisterUser(snaptrade);
       if (getProfile().authMode === "oauth") {
         throw new Error(
-          "The SDK does not support disconnecting connections with OAuth. Use an API-key profile.",
+          "Disconnecting connections is not supported with OAuth. Please manage your connections at https://dashboard.snaptrade.com.",
         );
       }
 

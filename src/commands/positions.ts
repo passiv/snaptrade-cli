@@ -43,7 +43,11 @@ function normalizePosition(position: AccountPosition): Position {
     ? instrument.underlying.raw_symbol || instrument.underlying.symbol
     : instrument.raw_symbol || instrument.symbol;
 
-  const currency = position.currency || instrument.currency;
+  const instrumentCurrency =
+    typeof instrument.currency === "string"
+      ? instrument.currency
+      : instrument.currency?.code;
+  const currency = position.currency || instrumentCurrency;
 
   return {
     symbol: typeof symbol === "string" && symbol ? symbol : "Unknown",
