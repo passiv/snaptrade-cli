@@ -34,9 +34,8 @@ export interface Settings {
 }
 
 function ensureConfigDir() {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
+  fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  fs.chmodSync(CONFIG_DIR, 0o700);
 }
 
 function getSettings(): Settings {
@@ -55,7 +54,19 @@ function saveSettings(updates: Partial<Settings>) {
   const newSettings = { ...current, ...updates } as Settings;
 
   ensureConfigDir();
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(newSettings, null, 2));
+  const fd = fs.openSync(
+    CONFIG_FILE,
+    fs.constants.O_WRONLY | fs.constants.O_CREAT,
+    0o600,
+  );
+  try {
+    // Secure existing files before writing credentials, regardless of the umask.
+    fs.fchmodSync(fd, 0o600);
+    fs.ftruncateSync(fd, 0);
+    fs.writeFileSync(fd, JSON.stringify(newSettings, null, 2));
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 export function getActiveProfileName(): string {
