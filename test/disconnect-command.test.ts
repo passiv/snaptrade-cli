@@ -15,6 +15,7 @@ vi.mock("../src/utils/user.ts", () => user);
 const originalAdapter = axios.defaults.adapter;
 
 beforeEach(() => {
+  user.loadOrRegisterUser.mockReset();
   useIsolatedConfigHome();
   captureConsole();
 });
@@ -67,7 +68,6 @@ describe("disconnect with the stable SDK", () => {
 
   it("explains that OAuth disconnect is unsupported before sending a request", async () => {
     saveProfile({ authMode: "oauth", accountType: "personal" });
-    user.loadOrRegisterUser.mockResolvedValue({});
     const adapter = vi.fn();
     axios.defaults.adapter = adapter;
     const client = new Snaptrade({
@@ -80,7 +80,10 @@ describe("disconnect with the stable SDK", () => {
         "disconnect",
         "local-connection",
       ]),
-    ).rejects.toThrow("Use an API-key profile.");
+    ).rejects.toThrow(
+      "Disconnecting connections is not supported with OAuth. Please manage your connections at https://dashboard.snaptrade.com.",
+    );
+    expect(user.loadOrRegisterUser).not.toHaveBeenCalled();
     expect(adapter).not.toHaveBeenCalled();
   });
 });

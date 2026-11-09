@@ -10,12 +10,12 @@ export function disconnectCommand(snaptrade: SnaptradeClient): Command {
     .description("Remove an existing broker connection")
     .argument("[connectionId]", "Connection ID to remove")
     .action(async (connectionId: string | undefined) => {
-      const user = await loadOrRegisterUser(snaptrade);
       if (getProfile().authMode === "oauth") {
         throw new Error(
           "Disconnecting connections is not supported with OAuth. Please manage your connections at https://dashboard.snaptrade.com.",
         );
       }
+      const user = await loadOrRegisterUser(snaptrade);
 
       // Prompt for connection IDs if not provided
       const connectionIds = await (async () => {
