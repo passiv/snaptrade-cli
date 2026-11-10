@@ -46,7 +46,11 @@ function normalizePosition(position: AccountPosition): Position {
   const instrumentCurrency =
     typeof instrument.currency === "string"
       ? instrument.currency
-      : instrument.currency?.code;
+      : typeof instrument.currency === "object" &&
+          instrument.currency !== null &&
+          "code" in instrument.currency
+        ? instrument.currency.code
+        : undefined;
   const currency = position.currency || instrumentCurrency;
 
   return {
