@@ -3,13 +3,24 @@ import chalk from "chalk";
 import { Command } from "commander";
 import type { SnaptradeClient } from "../utils/snaptradeClient.ts";
 import { loadOrRegisterUser } from "../utils/user.ts";
+import { getProfile } from "../utils/settings.ts";
 
 export function disconnectCommand(snaptrade: SnaptradeClient): Command {
   return new Command("disconnect")
     .description("Remove an existing broker connection")
     .argument("[connectionId]", "Connection ID to remove")
     .action(async (connectionId: string | undefined) => {
+      const rejectIfOAuth = () => {
+        if (getProfile().authMode === "oauth") {
+          throw new Error(
+            "Disconnecting connections is not supported with OAuth. Please manage your connections at https://dashboard.snaptrade.com.",
+          );
+        }
+      };
+
+      rejectIfOAuth();
       const user = await loadOrRegisterUser(snaptrade);
+      rejectIfOAuth();
 
       // Prompt for connection IDs if not provided
       const connectionIds = await (async () => {
@@ -36,9 +47,9 @@ export function disconnectCommand(snaptrade: SnaptradeClient): Command {
         connectionIds
           .filter((id) => id != null)
           .map(async (id) => {
-            return snaptrade.connections.removeBrokerageAuthorization({
+            return snaptrade.connections.deleteConnection({
               ...user,
-              authorizationId: id,
+              connectionId: id,
             });
           }),
       );

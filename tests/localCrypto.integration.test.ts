@@ -90,7 +90,7 @@ describe.skipIf(!simulation)("local CLI crypto simulation", () => {
     const sdk = (
       profile.authMode === "oauth"
         ? new Snaptrade({
-            auth: SnaptradeAuth.personalOAuth({
+            auth: SnaptradeAuth.oauth({
               accessToken: async () => profile.oauthAccessToken,
             }),
             basePath: profile.basePath,

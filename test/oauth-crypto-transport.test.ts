@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { SnaptradeClient } from "../src/utils/snaptradeClient.ts";
 import { Snaptrade, SnaptradeAuth } from "snaptrade-typescript-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,15 +40,15 @@ const order = {
 };
 
 describe("CLI startup OAuth transport for SDK crypto methods", () => {
-  it("supplies current bearer tokens for crypto and cancellation despite omitted SDK headers", async () => {
+  it("uses the SDK token provider for crypto and cancellation", async () => {
     const requests = captureTransport();
     auth.refreshOAuthToken
       .mockResolvedValueOnce("first-local-token")
       .mockResolvedValueOnce("second-local-token")
       .mockResolvedValue("third-local-token");
     const client = new Snaptrade({
-      auth: SnaptradeAuth.personalOAuth({
-        accessToken: async () => "sdk-token",
+      auth: SnaptradeAuth.oauth({
+        accessToken: () => auth.refreshOAuthToken(),
       }),
       basePath: "http://localhost:9000/api/v1",
     }) as SnaptradeClient;
@@ -74,6 +74,7 @@ describe("CLI startup OAuth transport for SDK crypto methods", () => {
       "Bearer third-local-token",
       "Bearer third-local-token",
     ]);
+    expect(auth.refreshOAuthToken).toHaveBeenCalledTimes(5);
     for (const request of requests) {
       expect(request.headers.has("Signature")).toBe(false);
       expect(request.url).not.toMatch(/clientId|userId|userSecret/);
@@ -101,12 +102,50 @@ describe("CLI startup OAuth transport for SDK crypto methods", () => {
     expect(requests[0].url).toContain("clientId=local-client");
   });
 
+  it("refreshes and retries once when the SDK bearer token is rejected", async () => {
+    const headers: unknown[] = [];
+    auth.refreshOAuthToken.mockResolvedValue("refreshed-token");
+    axios.defaults.adapter = async (config) => {
+      headers.push(config.headers.get("Authorization"));
+      const response = {
+        config,
+        data: [],
+        headers: {},
+        status: 200,
+        statusText: "OK",
+      };
+      if (headers.length === 1) {
+        throw new AxiosError(
+          "Unauthorized",
+          "ERR_BAD_REQUEST",
+          config,
+          undefined,
+          {
+            ...response,
+            status: 401,
+            statusText: "Unauthorized",
+          },
+        );
+      }
+      return response;
+    };
+    const client = new Snaptrade({
+      auth: SnaptradeAuth.oauth({ accessToken: "expired-token" }),
+      basePath: "http://localhost:9000/api/v1",
+    });
+
+    await client.accountInformation.listUserAccounts();
+
+    expect(headers).toEqual(["Bearer expired-token", "Bearer refreshed-token"]);
+    expect(auth.refreshOAuthToken).toHaveBeenCalledExactlyOnceWith(true);
+  });
+
   it("does not send or retry an order when the local token provider rejects", async () => {
     const requests = captureTransport();
     auth.refreshOAuthToken.mockRejectedValue(new Error("Local auth denied"));
     const client = new Snaptrade({
-      auth: SnaptradeAuth.personalOAuth({
-        accessToken: async () => "sdk-token",
+      auth: SnaptradeAuth.oauth({
+        accessToken: () => auth.refreshOAuthToken(),
       }),
       basePath: "http://localhost:9000/api/v1",
     }) as SnaptradeClient;
@@ -125,13 +164,11 @@ describe("quote command SDK transport", () => {
       loadOrRegisterUser: vi.fn().mockResolvedValue({}),
     }));
     vi.doMock("../src/utils/selectAccount.ts", () => ({
-      selectAccount: vi
-        .fn()
-        .mockResolvedValue({
-          id: "selected-account",
-          brokerage_authorization: "selected-auth",
-          institution_name: "Robinhood Agentic Trading",
-        }),
+      selectAccount: vi.fn().mockResolvedValue({
+        id: "selected-account",
+        brokerage_authorization: "selected-auth",
+        institution_name: "Robinhood Agentic Trading",
+      }),
     }));
     auth.refreshOAuthToken.mockResolvedValue("local-quote-token");
     const requests: InternalAxiosRequestConfig[] = [];
@@ -146,8 +183,8 @@ describe("quote command SDK transport", () => {
       return { config, data, headers: {}, status: 200, statusText: "OK" };
     };
     const client = new Snaptrade({
-      auth: SnaptradeAuth.personalOAuth({
-        accessToken: async () => "sdk-token",
+      auth: SnaptradeAuth.oauth({
+        accessToken: () => auth.refreshOAuthToken(),
       }),
       basePath: "http://localhost:9000/api/v1",
     }) as SnaptradeClient;

@@ -143,14 +143,9 @@ export function installAxiosPatch() {
   if (installed) return;
   installed = true;
 
-  axios.interceptors.request.use(async (config) => {
+  axios.interceptors.request.use((config) => {
     const configWithMetadata = config as RequestConfigWithMetadata;
     configWithMetadata.metadata = { startTime: Date.now() };
-
-    const token = await refreshOAuthToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
 
     return config;
   });
